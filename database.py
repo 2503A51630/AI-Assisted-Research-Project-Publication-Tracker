@@ -1,18 +1,31 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./research_tracker.db"
+# SQLite database stored in the Docker persistent volume
+DATABASE_URL = "sqlite:///./data/research_tracker.db"
 
+# Create the database engine
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args={"check_same_thread": False},
 )
 
+# Base class for SQLAlchemy models
+Base = declarative_base()
+
+# Database session factory
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
-    bind=engine
+    bind=engine,
 )
 
-Base = declarative_base()
+
+# Dependency used by FastAPI routes
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
