@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -8,21 +11,35 @@ from database import SessionLocal
 from models import User
 
 
+# Load variables from .env when running locally
+load_dotenv()
+
+
+# Password hashing
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto"
 )
 
 
-SECRET_KEY = "my-secret-key"
-ALGORITHM = "HS256"
+# JWT configuration
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is not configured. "
+        "Add SECRET_KEY to your .env file."
+    )
 
 
+# Bearer token authentication
 security = HTTPBearer(
     scheme_name="Bearer"
 )
 
 
+# Authentication router
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
@@ -78,7 +95,7 @@ def get_current_user(
                 detail="Invalid token"
             )
 
-    except JWTError:
+    except (JWTError, ValueError, TypeError):
         raise HTTPException(
             status_code=401,
             detail="Invalid token"
