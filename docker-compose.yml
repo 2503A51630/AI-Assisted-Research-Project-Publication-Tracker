@@ -14,8 +14,45 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
 
+      DATABASE_TYPE: postgresql
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+
+  postgres:
+    image: postgres:17
+
+    container_name: ai-research-postgres
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    ports:
+      - "5432:5432"
+
     volumes:
-      - research_db:/app/data
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
     restart: unless-stopped
 
@@ -37,4 +74,4 @@ services:
 
 
 volumes:
-  research_db:
+  postgres_data:
