@@ -16,55 +16,36 @@ load_dotenv()
 DATABASE_TYPE = os.getenv(
     "DATABASE_TYPE",
     "sqlite"
-)
+).lower()
 
 
 # ------------------------------------------
 # PostgreSQL configuration
 # ------------------------------------------
 
-if DATABASE_TYPE.lower() == "postgresql":
+if DATABASE_TYPE == "postgresql":
 
-    POSTGRES_USER = os.getenv(
-        "POSTGRES_USER"
-    )
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
-    POSTGRES_PASSWORD = os.getenv(
-        "POSTGRES_PASSWORD"
-    )
-
-    POSTGRES_DB = os.getenv(
-        "POSTGRES_DB"
-    )
-
-    POSTGRES_HOST = os.getenv(
-        "POSTGRES_HOST",
-        "localhost"
-    )
-
-    POSTGRES_PORT = os.getenv(
-        "POSTGRES_PORT",
-        "5432"
-    )
-
-    if not all([
-        POSTGRES_USER,
-        POSTGRES_PASSWORD,
-        POSTGRES_DB,
-    ]):
+    if not DATABASE_URL:
         raise RuntimeError(
-            "PostgreSQL environment variables "
-            "are not configured."
+            "DATABASE_URL is not configured for PostgreSQL."
         )
 
-    DATABASE_URL = (
-        f"postgresql+psycopg://"
-        f"{POSTGRES_USER}:"
-        f"{POSTGRES_PASSWORD}@"
-        f"{POSTGRES_HOST}:"
-        f"{POSTGRES_PORT}/"
-        f"{POSTGRES_DB}"
-    )
+    # Convert Render-style URLs to SQLAlchemy psycopg URL
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace(
+            "postgres://",
+            "postgresql+psycopg://",
+            1
+        )
+
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace(
+            "postgresql://",
+            "postgresql+psycopg://",
+            1
+        )
 
 
 # ------------------------------------------
@@ -85,7 +66,7 @@ else:
 
 connect_args = {}
 
-if DATABASE_TYPE.lower() == "sqlite":
+if DATABASE_TYPE == "sqlite":
     connect_args = {
         "check_same_thread": False
     }
