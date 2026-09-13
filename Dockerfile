@@ -7,17 +7,18 @@ FROM python:3.14-slim
 # Working directory
 WORKDIR /app
 
-# Copy Python dependency file
+# Install dependencies
 COPY requirements.txt .
 
-# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
+# Copy application code
 COPY . .
 
-# FastAPI port
+# Document the default local port
 EXPOSE 8001
 
 # Start FastAPI
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Use Render's PORT when deployed.
+# Use 8001 when running locally.
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}"]
