@@ -45,10 +45,13 @@ function App() {
   const [projectsLoading, setProjectsLoading] = useState(false);
 
   const [projectTitle, setProjectTitle] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
-  const [projectStatus, setProjectStatus] = useState("Active");
+  const [projectDescription, setProjectDescription] =
+    useState("");
+  const [projectStatus, setProjectStatus] =
+    useState("Active");
 
-  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editingProjectId, setEditingProjectId] =
+    useState(null);
 
   // ====================================================
   // PUBLICATIONS
@@ -58,11 +61,16 @@ function App() {
   const [publicationsLoading, setPublicationsLoading] =
     useState(false);
 
-  const [publicationTitle, setPublicationTitle] = useState("");
-  const [publicationAuthors, setPublicationAuthors] = useState("");
-  const [publicationJournal, setPublicationJournal] = useState("");
-  const [publicationYear, setPublicationYear] = useState("");
-  const [publicationDoi, setPublicationDoi] = useState("");
+  const [publicationTitle, setPublicationTitle] =
+    useState("");
+  const [publicationAuthors, setPublicationAuthors] =
+    useState("");
+  const [publicationJournal, setPublicationJournal] =
+    useState("");
+  const [publicationYear, setPublicationYear] =
+    useState("");
+  const [publicationDoi, setPublicationDoi] =
+    useState("");
   const [publicationProjectId, setPublicationProjectId] =
     useState("");
 
@@ -94,27 +102,46 @@ function App() {
     setLoginLoading(true);
 
     try {
-      const url =
-        `${API}/auth/login` +
-        `?username=${encodeURIComponent(
-          username.trim()
-        )}` +
-        `&password=${encodeURIComponent(
-          password
-        )}`;
+      console.log(
+        "Connecting to backend:",
+        API
+      );
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-        },
-      });
+      const response = await fetch(
+        `${API}/auth/login`,
+        {
+          method: "POST",
 
-      const data = await response.json();
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+
+          body: JSON.stringify({
+            username: username.trim(),
+            password: password
+          })
+        }
+      );
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Login failed."
+          data.detail ||
+            `Login failed (${response.status}).`
+        );
+      }
+
+      if (!data.access_token) {
+        throw new Error(
+          "Backend did not return an access token."
         );
       }
 
@@ -126,13 +153,18 @@ function App() {
       setToken(data.access_token);
       setPassword("");
       setLoginError("");
+
     } catch (error) {
-      console.error("Login error:", error);
+      console.error(
+        "Login error:",
+        error
+      );
 
       setLoginError(
         error.message ||
           "Cannot connect to backend."
       );
+
     } finally {
       setLoginLoading(false);
     }
@@ -143,7 +175,9 @@ function App() {
   // ====================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
+    localStorage.removeItem(
+      "access_token"
+    );
 
     setToken(null);
 
@@ -159,9 +193,7 @@ function App() {
   // ====================================================
 
   const fetchUsers = async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     setUsersLoading(true);
 
@@ -174,8 +206,8 @@ function App() {
             Authorization:
               `Bearer ${token}`,
             Accept:
-              "application/json",
-          },
+              "application/json"
+          }
         }
       );
 
@@ -184,7 +216,8 @@ function App() {
         return;
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -198,9 +231,10 @@ function App() {
           ? data
           : []
       );
+
     } catch (error) {
       console.error(
-        "Users fetch error:",
+        "Users error:",
         error
       );
 
@@ -208,6 +242,7 @@ function App() {
         error.message ||
           "Could not load users."
       );
+
     } finally {
       setUsersLoading(false);
     }
@@ -218,9 +253,7 @@ function App() {
   // ====================================================
 
   const fetchProjects = async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     setProjectsLoading(true);
 
@@ -233,8 +266,8 @@ function App() {
             Authorization:
               `Bearer ${token}`,
             Accept:
-              "application/json",
-          },
+              "application/json"
+          }
         }
       );
 
@@ -243,7 +276,8 @@ function App() {
         return;
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -257,9 +291,10 @@ function App() {
           ? data
           : []
       );
+
     } catch (error) {
       console.error(
-        "Projects fetch error:",
+        "Projects error:",
         error
       );
 
@@ -267,6 +302,7 @@ function App() {
         error.message ||
           "Could not load projects."
       );
+
     } finally {
       setProjectsLoading(false);
     }
@@ -277,9 +313,7 @@ function App() {
   // ====================================================
 
   const fetchPublications = async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     setPublicationsLoading(true);
 
@@ -292,8 +326,8 @@ function App() {
             Authorization:
               `Bearer ${token}`,
             Accept:
-              "application/json",
-          },
+              "application/json"
+          }
         }
       );
 
@@ -302,7 +336,8 @@ function App() {
         return;
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -316,9 +351,10 @@ function App() {
           ? data
           : []
       );
+
     } catch (error) {
       console.error(
-        "Publications fetch error:",
+        "Publications error:",
         error
       );
 
@@ -326,19 +362,18 @@ function App() {
         error.message ||
           "Could not load publications."
       );
+
     } finally {
       setPublicationsLoading(false);
     }
   };
 
   // ====================================================
-  // LOAD DATA AFTER LOGIN
+  // LOAD ALL DATA
   // ====================================================
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     fetchUsers();
     fetchProjects();
@@ -346,7 +381,7 @@ function App() {
   }, [token]);
 
   // ====================================================
-  // CLEAR USER FORM
+  // USER FORM
   // ====================================================
 
   const clearUserForm = () => {
@@ -361,121 +396,133 @@ function App() {
   // CREATE / UPDATE USER
   // ====================================================
 
-  const handleUserSubmit = async (event) => {
-    event.preventDefault();
+  const handleUserSubmit =
+    async (event) => {
 
-    setMessage("");
+      event.preventDefault();
 
-    if (!userUsername.trim()) {
-      setMessage(
-        "Please enter a username."
-      );
-      return;
-    }
+      setMessage("");
 
-    if (!userEmail.trim()) {
-      setMessage(
-        "Please enter an email."
-      );
-      return;
-    }
-
-    if (!editingUserId && !userPassword) {
-      setMessage(
-        "Please enter a password."
-      );
-      return;
-    }
-
-    const userData = {
-      username:
-        userUsername.trim(),
-
-      email:
-        userEmail.trim(),
-
-      role:
-        userRole,
-
-      password:
-        userPassword,
-    };
-
-    try {
-      const url = editingUserId
-        ? `${API}/users/${editingUserId}`
-        : `${API}/users/`;
-
-      const method = editingUserId
-        ? "PUT"
-        : "POST";
-
-      const response = await fetch(
-        url,
-        {
-          method,
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-
-            Accept:
-              "application/json",
-          },
-
-          body:
-            JSON.stringify(
-              userData
-            ),
-        }
-      );
-
-      const data =
-        await response.json();
-
-      if (response.status === 401) {
-        handleLogout();
+      if (!userUsername.trim()) {
+        setMessage(
+          "Please enter a username."
+        );
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "User operation failed."
+      if (!userEmail.trim()) {
+        setMessage(
+          "Please enter an email."
         );
+        return;
       }
 
-      setMessage(
-        editingUserId
-          ? "User updated successfully."
-          : "User created successfully."
-      );
+      if (
+        !editingUserId &&
+        !userPassword
+      ) {
+        setMessage(
+          "Please enter a password."
+        );
+        return;
+      }
 
-      clearUserForm();
+      const userData = {
+        username:
+          userUsername.trim(),
 
-      fetchUsers();
-    } catch (error) {
-      console.error(
-        "User submit error:",
-        error
-      );
+        email:
+          userEmail.trim(),
 
-      setMessage(
-        error.message ||
-          "Could not save user."
-      );
-    }
-  };
+        password:
+          userPassword,
+
+        role:
+          userRole
+      };
+
+      try {
+
+        const url = editingUserId
+          ? `${API}/users/${editingUserId}`
+          : `${API}/users/`;
+
+        const method = editingUserId
+          ? "PUT"
+          : "POST";
+
+        const response =
+          await fetch(
+            url,
+            {
+              method,
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Authorization:
+                  `Bearer ${token}`,
+
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify(
+                  userData
+                )
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "User operation failed."
+          );
+        }
+
+        setMessage(
+          editingUserId
+            ? "User updated successfully."
+            : "User created successfully."
+        );
+
+        clearUserForm();
+
+        fetchUsers();
+
+      } catch (error) {
+
+        console.error(
+          "User operation error:",
+          error
+        );
+
+        setMessage(
+          error.message ||
+            "Could not save user."
+        );
+      }
+    };
 
   // ====================================================
   // EDIT USER
   // ====================================================
 
   const handleEditUser = (user) => {
-    setEditingUserId(user.id);
+
+    setEditingUserId(
+      user.id
+    );
 
     setUserUsername(
       user.username || ""
@@ -489,14 +536,11 @@ function App() {
       user.role || "Researcher"
     );
 
-    // Password is intentionally left empty.
-    // Leaving it empty means no password change.
-
     setUserPassword("");
 
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: "smooth"
     });
   };
 
@@ -504,62 +548,68 @@ function App() {
   // DELETE USER
   // ====================================================
 
-  const handleDeleteUser = async (userId) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to delete this user?"
-      );
+  const handleDeleteUser =
+    async (userId) => {
 
-    if (!confirmed) {
-      return;
-    }
+      const confirmed =
+        window.confirm(
+          "Are you sure you want to delete this user?"
+        );
 
-    try {
-      const response = await fetch(
-        `${API}/users/${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-            Accept:
-              "application/json",
-          },
+      if (!confirmed) return;
+
+      try {
+
+        const response =
+          await fetch(
+            `${API}/users/${userId}`,
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                Accept:
+                  "application/json"
+              }
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
         }
-      );
 
-      const data =
-        await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "User deletion failed."
+          );
+        }
 
-      if (response.status === 401) {
-        handleLogout();
-        return;
-      }
+        setMessage(
+          "User deleted successfully."
+        );
 
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "User deletion failed."
+        fetchUsers();
+
+      } catch (error) {
+
+        console.error(
+          "Delete user error:",
+          error
+        );
+
+        setMessage(
+          error.message ||
+            "Could not delete user."
         );
       }
-
-      setMessage(
-        "User deleted successfully."
-      );
-
-      fetchUsers();
-    } catch (error) {
-      console.error(
-        "Delete user error:",
-        error
-      );
-
-      setMessage(
-        error.message ||
-          "Could not delete user."
-      );
-    }
-  };
+    };
 
   // ====================================================
   // PROJECT FORM
@@ -567,6 +617,7 @@ function App() {
 
   const handleProjectSubmit =
     async (event) => {
+
       event.preventDefault();
 
       setMessage("");
@@ -586,40 +637,44 @@ function App() {
           projectDescription.trim(),
 
         status:
-          projectStatus,
+          projectStatus
       };
 
       try {
-        const url = editingProjectId
-          ? `${API}/projects/${editingProjectId}`
-          : `${API}/projects/`;
 
-        const method = editingProjectId
-          ? "PUT"
-          : "POST";
+        const url =
+          editingProjectId
+            ? `${API}/projects/${editingProjectId}`
+            : `${API}/projects/`;
 
-        const response = await fetch(
-          url,
-          {
-            method,
+        const method =
+          editingProjectId
+            ? "PUT"
+            : "POST";
 
-            headers: {
-              "Content-Type":
-                "application/json",
+        const response =
+          await fetch(
+            url,
+            {
+              method,
 
-              Authorization:
-                `Bearer ${token}`,
+              headers: {
+                "Content-Type":
+                  "application/json",
 
-              Accept:
-                "application/json",
-            },
+                Authorization:
+                  `Bearer ${token}`,
 
-            body:
-              JSON.stringify(
-                projectData
-              ),
-          }
-        );
+                Accept:
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify(
+                  projectData
+                )
+            }
+          );
 
         const data =
           await response.json();
@@ -648,9 +703,11 @@ function App() {
         setProjectStatus("Active");
 
         fetchProjects();
+
       } catch (error) {
+
         console.error(
-          "Project error:",
+          "Project operation error:",
           error
         );
 
@@ -665,33 +722,39 @@ function App() {
   // EDIT PROJECT
   // ====================================================
 
-  const handleEditProject = (project) => {
-    setEditingProjectId(project.id);
+  const handleEditProject =
+    (project) => {
 
-    setProjectTitle(
-      project.title || ""
-    );
+      setEditingProjectId(
+        project.id
+      );
 
-    setProjectDescription(
-      project.description || ""
-    );
+      setProjectTitle(
+        project.title || ""
+      );
 
-    setProjectStatus(
-      project.status || "Active"
-    );
+      setProjectDescription(
+        project.description || ""
+      );
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
+      setProjectStatus(
+        project.status || "Active"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    };
 
   // ====================================================
   // CANCEL PROJECT EDIT
   // ====================================================
 
   const cancelProjectEdit = () => {
+
     setEditingProjectId(null);
+
     setProjectTitle("");
     setProjectDescription("");
     setProjectStatus("Active");
@@ -703,16 +766,16 @@ function App() {
 
   const handleDeleteProject =
     async (projectId) => {
+
       const confirmed =
         window.confirm(
           "Are you sure you want to delete this project?"
         );
 
-      if (!confirmed) {
-        return;
-      }
+      if (!confirmed) return;
 
       try {
+
         const response =
           await fetch(
             `${API}/projects/${projectId}`,
@@ -724,8 +787,8 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json",
-              },
+                  "application/json"
+              }
             }
           );
 
@@ -750,7 +813,9 @@ function App() {
 
         fetchProjects();
         fetchPublications();
+
       } catch (error) {
+
         console.error(
           "Delete project error:",
           error
@@ -769,18 +834,22 @@ function App() {
 
   const handlePublicationSubmit =
     async (event) => {
+
       event.preventDefault();
 
       setMessage("");
 
       if (!publicationTitle.trim()) {
+
         setMessage(
           "Please enter a publication title."
         );
+
         return;
       }
 
       const publicationData = {
+
         title:
           publicationTitle.trim(),
 
@@ -805,10 +874,11 @@ function App() {
             ? Number(
                 publicationProjectId
               )
-            : null,
+            : null
       };
 
       try {
+
         const url =
           editingPublicationId
             ? `${API}/publications/${editingPublicationId}`
@@ -833,13 +903,13 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json",
+                  "application/json"
               },
 
               body:
                 JSON.stringify(
                   publicationData
-                ),
+                )
             }
           );
 
@@ -867,9 +937,11 @@ function App() {
         clearPublicationForm();
 
         fetchPublications();
+
       } catch (error) {
+
         console.error(
-          "Publication error:",
+          "Publication operation error:",
           error
         );
 
@@ -886,6 +958,7 @@ function App() {
 
   const clearPublicationForm =
     () => {
+
       setEditingPublicationId(null);
 
       setPublicationTitle("");
@@ -902,6 +975,7 @@ function App() {
 
   const handleEditPublication =
     (publication) => {
+
       setEditingPublicationId(
         publication.id
       );
@@ -932,7 +1006,7 @@ function App() {
 
       window.scrollTo({
         top: 0,
-        behavior: "smooth",
+        behavior: "smooth"
       });
     };
 
@@ -942,16 +1016,16 @@ function App() {
 
   const handleDeletePublication =
     async (publicationId) => {
+
       const confirmed =
         window.confirm(
           "Are you sure you want to delete this publication?"
         );
 
-      if (!confirmed) {
-        return;
-      }
+      if (!confirmed) return;
 
       try {
+
         const response =
           await fetch(
             `${API}/publications/${publicationId}`,
@@ -963,8 +1037,8 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json",
-              },
+                  "application/json"
+              }
             }
           );
 
@@ -988,7 +1062,9 @@ function App() {
         );
 
         fetchPublications();
+
       } catch (error) {
+
         console.error(
           "Delete publication error:",
           error
@@ -1002,12 +1078,14 @@ function App() {
     };
 
   // ====================================================
-  // LOGIN PAGE
+  // LOGIN SCREEN
   // ====================================================
 
   if (!token) {
+
     return (
       <div style={styles.page}>
+
         <div style={styles.loginCard}>
 
           <div style={styles.logo}>
@@ -1085,6 +1163,7 @@ function App() {
           </form>
 
         </div>
+
       </div>
     );
   }
@@ -1096,9 +1175,7 @@ function App() {
   return (
     <div style={styles.page}>
 
-      {/* ==================================================
-          HEADER
-      ================================================== */}
+      {/* HEADER */}
 
       <header style={styles.topBar}>
 
@@ -1126,10 +1203,6 @@ function App() {
 
       <main style={styles.main}>
 
-        {/* =================================================
-            MESSAGE
-        ================================================== */}
-
         {message && (
           <div style={styles.messageCard}>
             {message}
@@ -1137,9 +1210,7 @@ function App() {
         )}
 
 
-        {/* =================================================
-            STATS
-        ================================================== */}
+        {/* STATISTICS */}
 
         <div style={styles.statsGrid}>
 
@@ -1197,9 +1268,7 @@ function App() {
         </div>
 
 
-        {/* =================================================
-            USERS
-        ================================================== */}
+        {/* USERS */}
 
         <section style={styles.section}>
 
@@ -1208,7 +1277,6 @@ function App() {
               ? "Edit User"
               : "Create User"}
           </h2>
-
 
           <form
             onSubmit={handleUserSubmit}
@@ -1227,7 +1295,6 @@ function App() {
               style={styles.input}
             />
 
-
             <input
               type="email"
               value={userEmail}
@@ -1239,7 +1306,6 @@ function App() {
               placeholder="Email"
               style={styles.input}
             />
-
 
             <input
               type="password"
@@ -1256,7 +1322,6 @@ function App() {
               }
               style={styles.input}
             />
-
 
             <select
               value={userRole}
@@ -1278,7 +1343,6 @@ function App() {
 
             </select>
 
-
             <div style={styles.buttonRow}>
 
               <button
@@ -1289,7 +1353,6 @@ function App() {
                   ? "Update User"
                   : "Create User"}
               </button>
-
 
               {editingUserId && (
 
@@ -1314,9 +1377,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            USER LIST
-        ================================================== */}
+        {/* USER LIST */}
 
         <section style={styles.section}>
 
@@ -1378,11 +1439,7 @@ function App() {
                   </p>
 
 
-                  <div
-                    style={
-                      styles.actionRow
-                    }
-                  >
+                  <div style={styles.actionRow}>
 
                     <button
                       onClick={() =>
@@ -1424,9 +1481,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            PROJECT FORM
-        ================================================== */}
+        {/* PROJECT FORM */}
 
         <section style={styles.section}>
 
@@ -1435,7 +1490,6 @@ function App() {
               ? "Edit Research Project"
               : "Create Research Project"}
           </h2>
-
 
           <form
             onSubmit={handleProjectSubmit}
@@ -1454,7 +1508,6 @@ function App() {
               style={styles.input}
             />
 
-
             <textarea
               value={projectDescription}
               onChange={(event) =>
@@ -1466,7 +1519,6 @@ function App() {
               rows="4"
               style={styles.textarea}
             />
-
 
             <select
               value={projectStatus}
@@ -1488,7 +1540,6 @@ function App() {
 
             </select>
 
-
             <div style={styles.buttonRow}>
 
               <button
@@ -1499,7 +1550,6 @@ function App() {
                   ? "Update Project"
                   : "Create Project"}
               </button>
-
 
               {editingProjectId && (
 
@@ -1524,9 +1574,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            PROJECT LIST
-        ================================================== */}
+        {/* PROJECTS */}
 
         <section style={styles.section}>
 
@@ -1579,12 +1627,9 @@ function App() {
                         "No description"}
                     </p>
 
-                    <span
-                      style={styles.badge}
-                    >
+                    <span style={styles.badge}>
                       {project.status}
                     </span>
-
 
                     <div
                       style={
@@ -1604,7 +1649,6 @@ function App() {
                       >
                         Edit
                       </button>
-
 
                       <button
                         onClick={() =>
@@ -1633,9 +1677,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            PUBLICATION FORM
-        ================================================== */}
+        {/* PUBLICATION FORM */}
 
         <section style={styles.section}>
 
@@ -1644,7 +1686,6 @@ function App() {
               ? "Edit Publication"
               : "Create Publication"}
           </h2>
-
 
           <form
             onSubmit={
@@ -1665,7 +1706,6 @@ function App() {
               style={styles.input}
             />
 
-
             <input
               type="text"
               value={publicationAuthors}
@@ -1677,7 +1717,6 @@ function App() {
               placeholder="Authors"
               style={styles.input}
             />
-
 
             <input
               type="text"
@@ -1691,7 +1730,6 @@ function App() {
               style={styles.input}
             />
 
-
             <input
               type="number"
               value={publicationYear}
@@ -1704,7 +1742,6 @@ function App() {
               style={styles.input}
             />
 
-
             <input
               type="text"
               value={publicationDoi}
@@ -1716,7 +1753,6 @@ function App() {
               placeholder="DOI link"
               style={styles.input}
             />
-
 
             <select
               value={publicationProjectId}
@@ -1747,7 +1783,6 @@ function App() {
 
             </select>
 
-
             <div style={styles.buttonRow}>
 
               <button
@@ -1758,7 +1793,6 @@ function App() {
                   ? "Update Publication"
                   : "Create Publication"}
               </button>
-
 
               {editingPublicationId && (
 
@@ -1783,9 +1817,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            PUBLICATIONS
-        ================================================== */}
+        {/* PUBLICATIONS */}
 
         <section style={styles.section}>
 
@@ -1868,7 +1900,6 @@ function App() {
 
                     )}
 
-
                     <div
                       style={
                         styles.actionRow
@@ -1887,7 +1918,6 @@ function App() {
                       >
                         Edit
                       </button>
-
 
                       <button
                         onClick={() =>
@@ -1916,9 +1946,7 @@ function App() {
         </section>
 
 
-        {/* =================================================
-            AI ASSISTANT
-        ================================================== */}
+        {/* AI ASSISTANT */}
 
         <AIAssistant />
 
@@ -1940,7 +1968,7 @@ const styles = {
     backgroundColor: "#f1f5f9",
     fontFamily:
       "Arial, Helvetica, sans-serif",
-    color: "#0f172a",
+    color: "#0f172a"
   },
 
   topBar: {
@@ -1951,14 +1979,14 @@ const styles = {
       "space-between",
     alignItems: "center",
     borderBottom:
-      "1px solid #e2e8f0",
+      "1px solid #e2e8f0"
   },
 
   main: {
     maxWidth: "1400px",
     margin: "0 auto",
     padding: "30px",
-    boxSizing: "border-box",
+    boxSizing: "border-box"
   },
 
   eyebrow: {
@@ -1966,24 +1994,26 @@ const styles = {
     color: "#2563eb",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "1.5px",
+    letterSpacing: "1.5px"
   },
 
   heading: {
-    margin: "6px 0 0",
-    fontSize: "30px",
+    margin:
+      "6px 0 0",
+    fontSize: "30px"
   },
 
   loginCard: {
     width: "100%",
     maxWidth: "520px",
-    margin: "80px auto",
+    margin:
+      "80px auto",
     padding: "35px",
     backgroundColor: "white",
     borderRadius: "18px",
     boxSizing: "border-box",
     boxShadow:
-      "0 10px 35px rgba(15,23,42,0.08)",
+      "0 10px 35px rgba(15,23,42,0.08)"
   },
 
   logo: {
@@ -1997,19 +2027,20 @@ const styles = {
     justifyContent: "center",
     fontSize: "20px",
     fontWeight: "800",
-    marginBottom: "18px",
+    marginBottom: "18px"
   },
 
   loginTitle: {
-    margin: "10px 0",
+    margin:
+      "10px 0",
     fontSize: "28px",
-    lineHeight: "1.25",
+    lineHeight: "1.25"
   },
 
   description: {
     color: "#64748b",
     lineHeight: "1.6",
-    marginBottom: "25px",
+    marginBottom: "25px"
   },
 
   label: {
@@ -2018,7 +2049,7 @@ const styles = {
     marginTop: "16px",
     fontSize: "14px",
     fontWeight: "700",
-    color: "#334155",
+    color: "#334155"
   },
 
   input: {
@@ -2029,7 +2060,7 @@ const styles = {
       "1px solid #cbd5e1",
     borderRadius: "9px",
     fontSize: "14px",
-    outline: "none",
+    outline: "none"
   },
 
   textarea: {
@@ -2042,7 +2073,7 @@ const styles = {
     fontSize: "14px",
     resize: "vertical",
     fontFamily:
-      "Arial, Helvetica, sans-serif",
+      "Arial, Helvetica, sans-serif"
   },
 
   loginButton: {
@@ -2054,7 +2085,7 @@ const styles = {
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   logoutButton: {
@@ -2065,7 +2096,7 @@ const styles = {
     backgroundColor: "white",
     color: "#334155",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   errorCard: {
@@ -2075,7 +2106,7 @@ const styles = {
     backgroundColor: "#fee2e2",
     color: "#b91c1c",
     fontWeight: "600",
-    fontSize: "13px",
+    fontSize: "13px"
   },
 
   messageCard: {
@@ -2084,7 +2115,7 @@ const styles = {
     borderRadius: "10px",
     backgroundColor: "#dbeafe",
     color: "#1d4ed8",
-    fontWeight: "600",
+    fontWeight: "600"
   },
 
   statsGrid: {
@@ -2092,7 +2123,7 @@ const styles = {
     gridTemplateColumns:
       "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "18px",
-    marginBottom: "25px",
+    marginBottom: "25px"
   },
 
   statCard: {
@@ -2100,7 +2131,7 @@ const styles = {
     padding: "23px",
     borderRadius: "14px",
     border:
-      "1px solid #e2e8f0",
+      "1px solid #e2e8f0"
   },
 
   statLabel: {
@@ -2108,17 +2139,19 @@ const styles = {
     color: "#64748b",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "1px",
+    letterSpacing: "1px"
   },
 
   statNumber: {
-    margin: "8px 0 0",
-    fontSize: "30px",
+    margin:
+      "8px 0 0",
+    fontSize: "30px"
   },
 
   connected: {
-    margin: "8px 0 0",
-    fontSize: "20px",
+    margin:
+      "8px 0 0",
+    fontSize: "20px"
   },
 
   section: {
@@ -2127,7 +2160,7 @@ const styles = {
     borderRadius: "15px",
     border:
       "1px solid #e2e8f0",
-    marginBottom: "25px",
+    marginBottom: "25px"
   },
 
   sectionHeader: {
@@ -2135,51 +2168,53 @@ const styles = {
     justifyContent:
       "space-between",
     alignItems: "center",
-    marginBottom: "18px",
+    marginBottom: "18px"
   },
 
   sectionTitle: {
     margin: 0,
-    fontSize: "21px",
+    fontSize: "21px"
   },
 
   form: {
     display: "grid",
-    gap: "12px",
+    gap: "12px"
   },
 
   buttonRow: {
     display: "flex",
     gap: "10px",
-    flexWrap: "wrap",
+    flexWrap: "wrap"
   },
 
   primaryButton: {
-    padding: "12px 18px",
+    padding:
+      "12px 18px",
     border: "none",
     borderRadius: "8px",
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   secondaryButton: {
-    padding: "10px 15px",
+    padding:
+      "10px 15px",
     border:
       "1px solid #cbd5e1",
     borderRadius: "8px",
     backgroundColor: "white",
     color: "#334155",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns:
       "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "15px",
+    gap: "15px"
   },
 
   itemCard: {
@@ -2187,49 +2222,53 @@ const styles = {
     borderRadius: "12px",
     border:
       "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f8fafc"
   },
 
   badge: {
     display: "inline-block",
     marginTop: "8px",
-    padding: "6px 10px",
+    padding:
+      "6px 10px",
     borderRadius: "20px",
     backgroundColor: "#dbeafe",
     color: "#1d4ed8",
     fontSize: "12px",
-    fontWeight: "700",
+    fontWeight: "700"
   },
 
   actionRow: {
     display: "flex",
     gap: "8px",
-    marginTop: "15px",
+    marginTop: "15px"
   },
 
   editButton: {
-    padding: "8px 14px",
+    padding:
+      "8px 14px",
     border: "none",
     borderRadius: "7px",
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   deleteButton: {
-    padding: "8px 14px",
+    padding:
+      "8px 14px",
     border: "none",
     borderRadius: "7px",
     backgroundColor: "#dc2626",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer",
+    cursor: "pointer"
   },
 
   emptyText: {
-    color: "#64748b",
-  },
+    color: "#64748b"
+  }
 };
+
 
 export default App;
