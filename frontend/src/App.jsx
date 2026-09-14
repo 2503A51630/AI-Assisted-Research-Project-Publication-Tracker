@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Navigation from "./Navigation";
 import AIAssistant from "./AIAssistant";
-const API = "http://127.0.0.1:8001";
+
+const API = "http://localhost:8001";
 
 function App() {
   const [showHome, setShowHome] = useState(
@@ -29,9 +30,9 @@ function App() {
 
   const itemsPerPage = 5;
 
-  // -----------------------------
+  // -----------------------------------------
   // PROJECT FORM
-  // -----------------------------
+  // -----------------------------------------
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -40,9 +41,9 @@ function App() {
   const [projectDescription, setProjectDescription] = useState("");
   const [projectStatus, setProjectStatus] = useState("Active");
 
-  // -----------------------------
+  // -----------------------------------------
   // PUBLICATION FORM
-  // -----------------------------
+  // -----------------------------------------
 
   const [showPublicationForm, setShowPublicationForm] = useState(false);
   const [editingPublication, setEditingPublication] = useState(null);
@@ -54,9 +55,9 @@ function App() {
   const [publicationDoi, setPublicationDoi] = useState("");
   const [publicationProjectId, setPublicationProjectId] = useState("");
 
-  // -----------------------------
+  // -----------------------------------------
   // USER FORM
-  // -----------------------------
+  // -----------------------------------------
 
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -66,9 +67,9 @@ function App() {
   const [userFormPassword, setUserFormPassword] = useState("");
   const [userFormRole, setUserFormRole] = useState("Researcher");
 
-  // -----------------------------
-  // GET ROLE FROM TOKEN
-  // -----------------------------
+  // -----------------------------------------
+  // GET ROLE FROM JWT
+  // -----------------------------------------
 
   const getRoleFromToken = () => {
     const token = localStorage.getItem("access_token");
@@ -85,12 +86,31 @@ function App() {
     }
   };
 
-  // -----------------------------
-  // LOGIN
-  // -----------------------------
+  // -----------------------------------------
+  // GET USERNAME FROM JWT
+  // -----------------------------------------
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const getUsernameFromToken = () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      return "";
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.username || "";
+    } catch {
+      return "";
+    }
+  };
+
+  // -----------------------------------------
+  // LOGIN
+  // -----------------------------------------
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
 
     setMessage("Logging in...");
 
@@ -121,8 +141,12 @@ function App() {
       localStorage.setItem("access_token", data.access_token);
 
       const role = getRoleFromToken();
+      const tokenUsername = getUsernameFromToken();
 
       setUserRole(role);
+      setUsername(tokenUsername || username);
+      setPassword("");
+
       setLoggedIn(true);
       setShowHome(false);
       setMessage("");
@@ -134,14 +158,14 @@ function App() {
         await loadUsers(data.access_token);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Login error:", error);
       setMessage("Cannot connect to the backend.");
     }
   };
 
-  // -----------------------------
-  // PROJECTS
-  // -----------------------------
+  // -----------------------------------------
+  // LOAD PROJECTS
+  // -----------------------------------------
 
   const loadProjects = async (token) => {
     try {
@@ -158,12 +182,16 @@ function App() {
         return;
       }
 
-      setProjects(data);
+      setProjects(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
+      console.error("Projects error:", error);
       setMessage("Could not connect to the projects API.");
     }
   };
+
+  // -----------------------------------------
+  // ADD PROJECT
+  // -----------------------------------------
 
   const openAddProjectForm = () => {
     setEditingProject(null);
@@ -174,14 +202,22 @@ function App() {
     setShowProjectForm(true);
   };
 
+  // -----------------------------------------
+  // EDIT PROJECT
+  // -----------------------------------------
+
   const openEditProjectForm = (project) => {
     setEditingProject(project);
-    setProjectTitle(project.title);
+    setProjectTitle(project.title || "");
     setProjectDescription(project.description || "");
     setProjectStatus(project.status || "Active");
     setMessage("");
     setShowProjectForm(true);
   };
+
+  // -----------------------------------------
+  // CLOSE PROJECT FORM
+  // -----------------------------------------
 
   const closeProjectForm = (clearMessage = true) => {
     setShowProjectForm(false);
@@ -195,8 +231,12 @@ function App() {
     }
   };
 
-  const handleProjectFormSubmit = async (e) => {
-    e.preventDefault();
+  // -----------------------------------------
+  // SAVE / UPDATE PROJECT
+  // -----------------------------------------
+
+  const handleProjectFormSubmit = async (event) => {
+    event.preventDefault();
 
     const token = localStorage.getItem("access_token");
 
@@ -265,10 +305,14 @@ function App() {
 
       closeProjectForm(false);
     } catch (error) {
-      console.error(error);
+      console.error("Save project error:", error);
       setMessage("Could not connect to the projects API.");
     }
   };
+
+  // -----------------------------------------
+  // DELETE PROJECT
+  // -----------------------------------------
 
   const handleDeleteProject = async (projectId) => {
     const confirmed = window.confirm(
@@ -302,7 +346,9 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.detail || "Could not delete project");
+        setMessage(
+          data.detail || "Could not delete project"
+        );
         return;
       }
 
@@ -313,14 +359,14 @@ function App() {
       setProjectPage(1);
       setMessage("Project deleted successfully!");
     } catch (error) {
-      console.error(error);
+      console.error("Delete project error:", error);
       setMessage("Could not connect to the projects API.");
     }
   };
 
-  // -----------------------------
-  // PUBLICATIONS
-  // -----------------------------
+  // -----------------------------------------
+  // LOAD PUBLICATIONS
+  // -----------------------------------------
 
   const loadPublications = async (token) => {
     try {
@@ -339,14 +385,16 @@ function App() {
         return;
       }
 
-      setPublications(data);
+      setPublications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
-      setMessage(
-        "Could not connect to the publications API."
-      );
+      console.error("Publications error:", error);
+      setMessage("Could not connect to the publications API.");
     }
   };
+
+  // -----------------------------------------
+  // ADD PUBLICATION
+  // -----------------------------------------
 
   const openAddPublicationForm = () => {
     setEditingPublication(null);
@@ -360,9 +408,13 @@ function App() {
     setShowPublicationForm(true);
   };
 
+  // -----------------------------------------
+  // EDIT PUBLICATION
+  // -----------------------------------------
+
   const openEditPublicationForm = (publication) => {
     setEditingPublication(publication);
-    setPublicationTitle(publication.title);
+    setPublicationTitle(publication.title || "");
     setPublicationAuthors(publication.authors || "");
     setPublicationJournal(publication.journal || "");
     setPublicationYear(
@@ -375,6 +427,10 @@ function App() {
     setMessage("");
     setShowPublicationForm(true);
   };
+
+  // -----------------------------------------
+  // CLOSE PUBLICATION FORM
+  // -----------------------------------------
 
   const closePublicationForm = (clearMessage = true) => {
     setShowPublicationForm(false);
@@ -391,8 +447,12 @@ function App() {
     }
   };
 
-  const handlePublicationFormSubmit = async (e) => {
-    e.preventDefault();
+  // -----------------------------------------
+  // SAVE / UPDATE PUBLICATION
+  // -----------------------------------------
+
+  const handlePublicationFormSubmit = async (event) => {
+    event.preventDefault();
 
     const token = localStorage.getItem("access_token");
 
@@ -475,12 +535,16 @@ function App() {
 
       closePublicationForm(false);
     } catch (error) {
-      console.error(error);
+      console.error("Save publication error:", error);
       setMessage(
         "Could not connect to the publications API."
       );
     }
   };
+
+  // -----------------------------------------
+  // DELETE PUBLICATION
+  // -----------------------------------------
 
   const handleDeletePublication = async (
     publicationId
@@ -532,16 +596,16 @@ function App() {
       setPublicationPage(1);
       setMessage("Publication deleted successfully!");
     } catch (error) {
-      console.error(error);
+      console.error("Delete publication error:", error);
       setMessage(
         "Could not connect to the publications API."
       );
     }
   };
 
-  // -----------------------------
-  // USERS
-  // -----------------------------
+  // -----------------------------------------
+  // LOAD USERS
+  // -----------------------------------------
 
   const loadUsers = async (token) => {
     try {
@@ -558,12 +622,16 @@ function App() {
         return;
       }
 
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
+      console.error("Users error:", error);
       setMessage("Could not connect to the users API.");
     }
   };
+
+  // -----------------------------------------
+  // ADD USER
+  // -----------------------------------------
 
   const openAddUserForm = () => {
     setEditingUser(null);
@@ -575,15 +643,23 @@ function App() {
     setShowUserForm(true);
   };
 
+  // -----------------------------------------
+  // EDIT USER
+  // -----------------------------------------
+
   const openEditUserForm = (user) => {
     setEditingUser(user);
-    setUserFormUsername(user.username);
-    setUserFormEmail(user.email);
+    setUserFormUsername(user.username || "");
+    setUserFormEmail(user.email || "");
     setUserFormPassword("");
-    setUserFormRole(user.role);
+    setUserFormRole(user.role || "Researcher");
     setMessage("");
     setShowUserForm(true);
   };
+
+  // -----------------------------------------
+  // CLOSE USER FORM
+  // -----------------------------------------
 
   const closeUserForm = (clearMessage = true) => {
     setShowUserForm(false);
@@ -598,8 +674,12 @@ function App() {
     }
   };
 
-  const handleUserFormSubmit = async (e) => {
-    e.preventDefault();
+  // -----------------------------------------
+  // SAVE / UPDATE USER
+  // -----------------------------------------
+
+  const handleUserFormSubmit = async (event) => {
+    event.preventDefault();
 
     const token = localStorage.getItem("access_token");
 
@@ -664,10 +744,14 @@ function App() {
 
       closeUserForm(false);
     } catch (error) {
-      console.error(error);
+      console.error("Save user error:", error);
       setMessage("Could not connect to the users API.");
     }
   };
+
+  // -----------------------------------------
+  // CURRENT USER ID
+  // -----------------------------------------
 
   const getCurrentUserId = () => {
     const token = localStorage.getItem("access_token");
@@ -683,6 +767,10 @@ function App() {
       return null;
     }
   };
+
+  // -----------------------------------------
+  // DELETE USER
+  // -----------------------------------------
 
   const handleDeleteUser = async (userId) => {
     if (userId === getCurrentUserId()) {
@@ -735,14 +823,14 @@ function App() {
 
       setMessage("User deleted successfully!");
     } catch (error) {
-      console.error(error);
+      console.error("Delete user error:", error);
       setMessage("Could not connect to the users API.");
     }
   };
 
-  // -----------------------------
-  // LOAD DATA AFTER LOGIN
-  // -----------------------------
+  // -----------------------------------------
+  // LOAD SAVED SESSION
+  // -----------------------------------------
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -752,8 +840,10 @@ function App() {
     }
 
     const role = getRoleFromToken();
+    const tokenUsername = getUsernameFromToken();
 
     setUserRole(role);
+    setUsername(tokenUsername);
     setLoggedIn(true);
     setShowHome(false);
 
@@ -765,13 +855,13 @@ function App() {
     }
   }, []);
 
-  // -----------------------------
+  // -----------------------------------------
   // SEARCH
-  // -----------------------------
+  // -----------------------------------------
 
   const filteredProjects = useMemo(() => {
     return projects.filter((project) =>
-      project.title
+      String(project.title || "")
         .toLowerCase()
         .includes(projectSearch.toLowerCase())
     );
@@ -779,7 +869,7 @@ function App() {
 
   const filteredPublications = useMemo(() => {
     return publications.filter((publication) =>
-      `${publication.title} ${
+      `${publication.title || ""} ${
         publication.authors || ""
       } ${publication.journal || ""}`
         .toLowerCase()
@@ -806,10 +896,11 @@ function App() {
     projectPage * itemsPerPage
   );
 
-  const visiblePublications = filteredPublications.slice(
-    (publicationPage - 1) * itemsPerPage,
-    publicationPage * itemsPerPage
-  );
+  const visiblePublications =
+    filteredPublications.slice(
+      (publicationPage - 1) * itemsPerPage,
+      publicationPage * itemsPerPage
+    );
 
   useEffect(() => {
     setProjectPage(1);
@@ -824,12 +915,14 @@ function App() {
       (item) => item.id === projectId
     );
 
-    return project ? project.title : "No project";
+    return project
+      ? project.title
+      : "No project";
   };
 
-  // -----------------------------
+  // -----------------------------------------
   // LOGOUT
-  // -----------------------------
+  // -----------------------------------------
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -847,9 +940,9 @@ function App() {
     setMessage("");
   };
 
-  // -----------------------------
-  // HOME PAGE
-  // -----------------------------
+  // -----------------------------------------
+  // HOME
+  // -----------------------------------------
 
   if (showHome && !loggedIn) {
     return (
@@ -859,18 +952,18 @@ function App() {
     );
   }
 
-  // -----------------------------
+  // -----------------------------------------
   // DASHBOARD
-  // -----------------------------
+  // -----------------------------------------
 
   if (loggedIn) {
     return (
       <div style={styles.dashboard}>
         <Navigation
-  username={username}
-  userRole={userRole}
-  onLogout={handleLogout}
-/>
+          username={username}
+          userRole={userRole}
+          onLogout={handleLogout}
+        />
 
         <header style={styles.dashboardHeader}>
           <div>
@@ -899,78 +992,51 @@ function App() {
           </button>
         </header>
 
-        {/* STAT CARDS */}
+        {/* STATS */}
 
         <section style={styles.stats}>
+          <StatCard
+            icon="📁"
+            number={projects.length}
+            label="Total Projects"
+          />
 
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>📁</div>
-            <div>
-              <div style={styles.statNumber}>
-                {projects.length}
-              </div>
-              <div style={styles.statLabel}>
-                Total Projects
-              </div>
-            </div>
-          </div>
+          <StatCard
+            icon="📚"
+            number={publications.length}
+            label="Publications"
+          />
 
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>📚</div>
-            <div>
-              <div style={styles.statNumber}>
-                {publications.length}
-              </div>
-              <div style={styles.statLabel}>
-                Publications
-              </div>
-            </div>
-          </div>
-
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>✅</div>
-            <div>
-              <div style={styles.statNumber}>
-                {
-                  projects.filter(
-                    (project) =>
-                      project.status === "Completed"
-                  ).length
-                }
-              </div>
-              <div style={styles.statLabel}>
-                Completed
-              </div>
-            </div>
-          </div>
+          <StatCard
+            icon="✅"
+            number={
+              projects.filter(
+                (project) =>
+                  project.status === "Completed"
+              ).length
+            }
+            label="Completed"
+          />
 
           {userRole === "Admin" && (
-            <div style={styles.statCard}>
-              <div style={styles.statIcon}>👥</div>
-              <div>
-                <div style={styles.statNumber}>
-                  {users.length}
-                </div>
-                <div style={styles.statLabel}>
-                  Users
-                </div>
-              </div>
-            </div>
+            <StatCard
+              icon="👥"
+              number={users.length}
+              label="Users"
+            />
           )}
-
         </section>
 
-        <div style={styles.sectionGrid}>
+        {/* PROJECTS + PUBLICATIONS */}
 
+        <div style={styles.sectionGrid}>
           {/* PROJECTS */}
 
           <section
-  id="projects-section"
-  style={styles.largeCard}
->
-
+            id="projects-section"
+            style={styles.largeCard}
+          >
             <div style={styles.sectionHeader}>
-
               <div>
                 <p style={styles.sectionEyebrow}>
                   RESEARCH WORK
@@ -991,7 +1057,6 @@ function App() {
               >
                 + Add Project
               </button>
-
             </div>
 
             <input
@@ -999,41 +1064,31 @@ function App() {
               type="text"
               placeholder="Search projects..."
               value={projectSearch}
-              onChange={(e) =>
-                setProjectSearch(e.target.value)
+              onChange={(event) =>
+                setProjectSearch(event.target.value)
               }
             />
 
             {filteredProjects.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>📁</div>
-                <h3>No projects found</h3>
-                <p>
-                  Create your first research project.
-                </p>
-              </div>
+              <EmptyState
+                icon="📁"
+                title="No projects found"
+                text="Create your first research project."
+              />
             ) : (
               <div>
-
                 {visibleProjects.map((project) => (
                   <article
                     key={project.id}
                     style={styles.projectCard}
                   >
+                    <h3 style={styles.itemTitle}>
+                      {project.title}
+                    </h3>
 
-                    <div style={styles.itemHeader}>
-
-                      <div>
-                        <h3 style={styles.itemTitle}>
-                          {project.title}
-                        </h3>
-
-                        <span style={styles.statusBadge}>
-                          {project.status}
-                        </span>
-                      </div>
-
-                    </div>
+                    <span style={styles.statusBadge}>
+                      {project.status}
+                    </span>
 
                     <p style={styles.itemDescription}>
                       {project.description ||
@@ -1041,7 +1096,6 @@ function App() {
                     </p>
 
                     <div style={styles.itemActions}>
-
                       <button
                         onClick={() =>
                           openEditProjectForm(project)
@@ -1059,9 +1113,7 @@ function App() {
                       >
                         Delete
                       </button>
-
                     </div>
-
                   </article>
                 ))}
 
@@ -1069,27 +1121,30 @@ function App() {
                   page={projectPage}
                   totalPages={projectTotalPages}
                   onPrevious={() =>
-                    setProjectPage(projectPage - 1)
+                    setProjectPage(
+                      Math.max(1, projectPage - 1)
+                    )
                   }
                   onNext={() =>
-                    setProjectPage(projectPage + 1)
+                    setProjectPage(
+                      Math.min(
+                        projectTotalPages,
+                        projectPage + 1
+                      )
+                    )
                   }
                 />
-
               </div>
             )}
-
           </section>
 
           {/* PUBLICATIONS */}
 
           <section
-  id="publications-section"
-  style={styles.largeCard}
->
-
+            id="publications-section"
+            style={styles.largeCard}
+          >
             <div style={styles.sectionHeader}>
-
               <div>
                 <p style={styles.sectionEyebrow}>
                   RESEARCH OUTPUT
@@ -1110,7 +1165,6 @@ function App() {
               >
                 + Add Publication
               </button>
-
             </div>
 
             <input
@@ -1118,29 +1172,27 @@ function App() {
               type="text"
               placeholder="Search title, author, or journal..."
               value={publicationSearch}
-              onChange={(e) =>
-                setPublicationSearch(e.target.value)
+              onChange={(event) =>
+                setPublicationSearch(
+                  event.target.value
+                )
               }
             />
 
             {filteredPublications.length === 0 ? (
-              <div style={styles.emptyState}>
-                <div style={styles.emptyIcon}>📚</div>
-                <h3>No publications found</h3>
-                <p>
-                  Add your first research publication.
-                </p>
-              </div>
+              <EmptyState
+                icon="📚"
+                title="No publications found"
+                text="Add your first research publication."
+              />
             ) : (
               <div>
-
                 {visiblePublications.map(
                   (publication) => (
                     <article
                       key={publication.id}
                       style={styles.projectCard}
                     >
-
                       <h3 style={styles.itemTitle}>
                         {publication.title}
                       </h3>
@@ -1178,7 +1230,6 @@ function App() {
                       )}
 
                       <div style={styles.itemActions}>
-
                         <button
                           onClick={() =>
                             openEditPublicationForm(
@@ -1200,9 +1251,7 @@ function App() {
                         >
                           Delete
                         </button>
-
                       </div>
-
                     </article>
                   )
                 )}
@@ -1212,33 +1261,31 @@ function App() {
                   totalPages={publicationTotalPages}
                   onPrevious={() =>
                     setPublicationPage(
-                      publicationPage - 1
+                      Math.max(1, publicationPage - 1)
                     )
                   }
                   onNext={() =>
                     setPublicationPage(
-                      publicationPage + 1
+                      Math.min(
+                        publicationTotalPages,
+                        publicationPage + 1
+                      )
                     )
                   }
                 />
-
               </div>
             )}
-
           </section>
-
         </div>
 
-        {/* USERS */}
+        {/* USER MANAGEMENT */}
 
         {userRole === "Admin" && (
           <section
-  id="users-section"
-  style={styles.largeCard}
->
-
+            id="users-section"
+            style={styles.largeCard}
+          >
             <div style={styles.sectionHeader}>
-
               <div>
                 <p style={styles.sectionEyebrow}>
                   ADMINISTRATION
@@ -1259,20 +1306,19 @@ function App() {
               >
                 + Add User
               </button>
-
             </div>
 
             {users.length === 0 ? (
-              <div style={styles.emptyState}>
-                <h3>No users found</h3>
-              </div>
+              <EmptyState
+                title="No users found"
+                text="Create your first researcher account."
+              />
             ) : (
               users.map((user) => (
                 <article
                   key={user.id}
                   style={styles.projectCard}
                 >
-
                   <h3 style={styles.itemTitle}>
                     {user.username}
                   </h3>
@@ -1296,7 +1342,6 @@ function App() {
                   </p>
 
                   <div style={styles.itemActions}>
-
                     <button
                       onClick={() =>
                         openEditUserForm(user)
@@ -1314,120 +1359,78 @@ function App() {
                     >
                       Delete
                     </button>
-
                   </div>
-
                 </article>
               ))
             )}
-
           </section>
         )}
 
         {/* ANALYTICS */}
 
-<section
-  id="analytics-section"
-  style={styles.largeCard}
->
-  <div style={styles.sectionHeader}>
-    <div>
-      <p style={styles.sectionEyebrow}>
-        RESEARCH INSIGHTS
-      </p>
+        <section
+          id="analytics-section"
+          style={styles.largeCard}
+        >
+          <div style={styles.sectionHeader}>
+            <div>
+              <p style={styles.sectionEyebrow}>
+                RESEARCH INSIGHTS
+              </p>
 
-      <h2 style={styles.sectionTitle}>
-        Analytics
-      </h2>
+              <h2 style={styles.sectionTitle}>
+                Analytics
+              </h2>
 
-      <p style={styles.sectionDescription}>
-        Overview of your research activity.
-      </p>
-    </div>
-  </div>
+              <p style={styles.sectionDescription}>
+                Overview of your research activity.
+              </p>
+            </div>
+          </div>
 
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns:
-        "repeat(auto-fit, minmax(170px, 1fr))",
-      gap: "15px",
-      marginTop: "20px",
-    }}
-  >
-    <div style={styles.statCard}>
-      <div style={styles.statIcon}>📁</div>
+          <div style={styles.analyticsGrid}>
+            <StatCard
+              icon="📁"
+              number={projects.length}
+              label="Total Projects"
+            />
 
-      <div>
-        <div style={styles.statNumber}>
-          {projects.length}
-        </div>
+            <StatCard
+              icon="🟢"
+              number={
+                projects.filter(
+                  (project) =>
+                    project.status === "Active"
+                ).length
+              }
+              label="Active Projects"
+            />
 
-        <div style={styles.statLabel}>
-          Total Projects
-        </div>
-      </div>
-    </div>
+            <StatCard
+              icon="✅"
+              number={
+                projects.filter(
+                  (project) =>
+                    project.status === "Completed"
+                ).length
+              }
+              label="Completed Projects"
+            />
 
-    <div style={styles.statCard}>
-      <div style={styles.statIcon}>🟢</div>
+            <StatCard
+              icon="📚"
+              number={publications.length}
+              label="Publications"
+            />
+          </div>
+        </section>
 
-      <div>
-        <div style={styles.statNumber}>
-          {
-            projects.filter(
-              (project) =>
-                project.status === "Active"
-            ).length
-          }
-        </div>
+        <AIAssistant />
 
-        <div style={styles.statLabel}>
-          Active Projects
-        </div>
-      </div>
-    </div>
-
-    <div style={styles.statCard}>
-      <div style={styles.statIcon}>✅</div>
-
-      <div>
-        <div style={styles.statNumber}>
-          {
-            projects.filter(
-              (project) =>
-                project.status === "Completed"
-            ).length
-          }
-        </div>
-
-        <div style={styles.statLabel}>
-          Completed Projects
-        </div>
-      </div>
-    </div>
-
-    <div style={styles.statCard}>
-      <div style={styles.statIcon}>📚</div>
-
-      <div>
-        <div style={styles.statNumber}>
-          {publications.length}
-        </div>
-
-        <div style={styles.statLabel}>
-          Publications
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<AIAssistant />
         {/* PROJECT MODAL */}
 
         {showProjectForm && (
           <Modal>
-
             <h2 style={styles.modalTitle}>
               {editingProject
                 ? "Edit Project"
@@ -1437,7 +1440,6 @@ function App() {
             <form
               onSubmit={handleProjectFormSubmit}
             >
-
               <label style={styles.label}>
                 Project Title
               </label>
@@ -1445,8 +1447,10 @@ function App() {
               <input
                 type="text"
                 value={projectTitle}
-                onChange={(e) =>
-                  setProjectTitle(e.target.value)
+                onChange={(event) =>
+                  setProjectTitle(
+                    event.target.value
+                  )
                 }
                 placeholder="Enter project title"
                 style={styles.input}
@@ -1459,9 +1463,9 @@ function App() {
 
               <textarea
                 value={projectDescription}
-                onChange={(e) =>
+                onChange={(event) =>
                   setProjectDescription(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter project description"
@@ -1475,8 +1479,10 @@ function App() {
 
               <select
                 value={projectStatus}
-                onChange={(e) =>
-                  setProjectStatus(e.target.value)
+                onChange={(event) =>
+                  setProjectStatus(
+                    event.target.value
+                  )
                 }
                 style={styles.input}
               >
@@ -1494,7 +1500,6 @@ function App() {
               </select>
 
               <div style={styles.modalButtons}>
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1513,11 +1518,8 @@ function App() {
                     ? "Update Project"
                     : "Save Project"}
                 </button>
-
               </div>
-
             </form>
-
           </Modal>
         )}
 
@@ -1525,7 +1527,6 @@ function App() {
 
         {showPublicationForm && (
           <Modal>
-
             <h2 style={styles.modalTitle}>
               {editingPublication
                 ? "Edit Publication"
@@ -1537,7 +1538,6 @@ function App() {
                 handlePublicationFormSubmit
               }
             >
-
               <label style={styles.label}>
                 Publication Title
               </label>
@@ -1545,9 +1545,9 @@ function App() {
               <input
                 type="text"
                 value={publicationTitle}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationTitle(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter publication title"
@@ -1562,9 +1562,9 @@ function App() {
               <input
                 type="text"
                 value={publicationAuthors}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationAuthors(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter authors"
@@ -1578,9 +1578,9 @@ function App() {
               <input
                 type="text"
                 value={publicationJournal}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationJournal(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter journal name"
@@ -1594,9 +1594,9 @@ function App() {
               <input
                 type="number"
                 value={publicationYear}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationYear(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter year"
@@ -1610,9 +1610,9 @@ function App() {
               <input
                 type="text"
                 value={publicationDoi}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationDoi(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter DOI"
@@ -1625,14 +1625,13 @@ function App() {
 
               <select
                 value={publicationProjectId}
-                onChange={(e) =>
+                onChange={(event) =>
                   setPublicationProjectId(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 style={styles.input}
               >
-
                 <option value="">
                   No Project
                 </option>
@@ -1645,11 +1644,9 @@ function App() {
                     {project.title}
                   </option>
                 ))}
-
               </select>
 
               <div style={styles.modalButtons}>
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1668,11 +1665,8 @@ function App() {
                     ? "Update Publication"
                     : "Save Publication"}
                 </button>
-
               </div>
-
             </form>
-
           </Modal>
         )}
 
@@ -1680,7 +1674,6 @@ function App() {
 
         {showUserForm && (
           <Modal>
-
             <h2 style={styles.modalTitle}>
               {editingUser
                 ? "Edit User"
@@ -1690,7 +1683,6 @@ function App() {
             <form
               onSubmit={handleUserFormSubmit}
             >
-
               <label style={styles.label}>
                 Username
               </label>
@@ -1698,9 +1690,9 @@ function App() {
               <input
                 type="text"
                 value={userFormUsername}
-                onChange={(e) =>
+                onChange={(event) =>
                   setUserFormUsername(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter username"
@@ -1715,9 +1707,9 @@ function App() {
               <input
                 type="email"
                 value={userFormEmail}
-                onChange={(e) =>
+                onChange={(event) =>
                   setUserFormEmail(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder="Enter email"
@@ -1732,9 +1724,9 @@ function App() {
               <input
                 type="password"
                 value={userFormPassword}
-                onChange={(e) =>
+                onChange={(event) =>
                   setUserFormPassword(
-                    e.target.value
+                    event.target.value
                   )
                 }
                 placeholder={
@@ -1752,8 +1744,10 @@ function App() {
 
               <select
                 value={userFormRole}
-                onChange={(e) =>
-                  setUserFormRole(e.target.value)
+                onChange={(event) =>
+                  setUserFormRole(
+                    event.target.value
+                  )
                 }
                 style={styles.input}
               >
@@ -1767,7 +1761,6 @@ function App() {
               </select>
 
               <div style={styles.modalButtons}>
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1786,11 +1779,8 @@ function App() {
                     ? "Update User"
                     : "Create User"}
                 </button>
-
               </div>
-
             </form>
-
           </Modal>
         )}
 
@@ -1799,20 +1789,17 @@ function App() {
             {message}
           </div>
         )}
-
       </div>
     );
   }
 
-  // -----------------------------
+  // -----------------------------------------
   // LOGIN PAGE
-  // -----------------------------
+  // -----------------------------------------
 
   return (
     <div style={styles.loginPage}>
-
       <div style={styles.loginLeft}>
-
         <div style={styles.loginLogo}>
           AI
         </div>
@@ -1832,39 +1819,28 @@ function App() {
         </p>
 
         <div style={styles.loginFeatures}>
+          <FeatureRow
+            icon="📁"
+            title="Project Management"
+            text="Track research projects easily."
+          />
 
-          <div style={styles.loginFeature}>
-            <span>📁</span>
-            <div>
-              <strong>Project Management</strong>
-              <p>Track research projects easily.</p>
-            </div>
-          </div>
+          <FeatureRow
+            icon="📚"
+            title="Publication Management"
+            text="Keep publication information organized."
+          />
 
-          <div style={styles.loginFeature}>
-            <span>📚</span>
-            <div>
-              <strong>Publication Management</strong>
-              <p>Keep publication information organized.</p>
-            </div>
-          </div>
-
-          <div style={styles.loginFeature}>
-            <span>🤖</span>
-            <div>
-              <strong>AI Assistance</strong>
-              <p>Support research activities with AI.</p>
-            </div>
-          </div>
-
+          <FeatureRow
+            icon="🤖"
+            title="AI Assistance"
+            text="Support research activities with AI."
+          />
         </div>
-
       </div>
 
       <div style={styles.loginRight}>
-
         <div style={styles.loginCard}>
-
           <h2 style={styles.loginHeading}>
             Welcome back
           </h2>
@@ -1874,7 +1850,6 @@ function App() {
           </p>
 
           <form onSubmit={handleLogin}>
-
             <label style={styles.label}>
               Username
             </label>
@@ -1882,8 +1857,10 @@ function App() {
             <input
               type="text"
               value={username}
-              onChange={(e) =>
-                setUsername(e.target.value)
+              onChange={(event) =>
+                setUsername(
+                  event.target.value
+                )
               }
               placeholder="Enter username"
               style={styles.input}
@@ -1897,8 +1874,10 @@ function App() {
             <input
               type="password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
+              onChange={(event) =>
+                setPassword(
+                  event.target.value
+                )
               }
               placeholder="Enter password"
               style={styles.input}
@@ -1911,7 +1890,6 @@ function App() {
             >
               Login
             </button>
-
           </form>
 
           {message && (
@@ -1919,11 +1897,123 @@ function App() {
               {message}
             </p>
           )}
-
         </div>
+      </div>
+    </div>
+  );
+}
 
+// ========================================
+// STAT CARD
+// ========================================
+
+function StatCard({ icon, number, label }) {
+  return (
+    <div style={styles.statCard}>
+      <div style={styles.statIcon}>
+        {icon}
       </div>
 
+      <div>
+        <div style={styles.statNumber}>
+          {number}
+        </div>
+
+        <div style={styles.statLabel}>
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ========================================
+// FEATURE ROW
+// ========================================
+
+function FeatureRow({ icon, title, text }) {
+  return (
+    <div style={styles.loginFeature}>
+      <span>{icon}</span>
+
+      <div>
+        <strong>{title}</strong>
+
+        <p>{text}</p>
+      </div>
+    </div>
+  );
+}
+
+// ========================================
+// EMPTY STATE
+// ========================================
+
+function EmptyState({
+  icon,
+  title,
+  text,
+}) {
+  return (
+    <div style={styles.emptyState}>
+      {icon && (
+        <div style={styles.emptyIcon}>
+          {icon}
+        </div>
+      )}
+
+      <h3>{title}</h3>
+
+      <p>{text}</p>
+    </div>
+  );
+}
+
+// ========================================
+// PAGINATION
+// ========================================
+
+function Pagination({
+  page,
+  totalPages,
+  onPrevious,
+  onNext,
+}) {
+  return (
+    <div style={styles.pagination}>
+      <button
+        style={styles.pageButton}
+        disabled={page === 1}
+        onClick={onPrevious}
+      >
+        Previous
+      </button>
+
+      <span>
+        Page {page} of {totalPages}
+      </span>
+
+      <button
+        style={styles.pageButton}
+        disabled={page === totalPages}
+        onClick={onNext}
+      >
+        Next
+      </button>
+    </div>
+  );
+}
+
+// ========================================
+// MODAL
+// ========================================
+
+function Modal({ children }) {
+  return (
+    <div style={styles.modalOverlay}>
+      <div style={styles.modalCard}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -1935,11 +2025,8 @@ function App() {
 function Home({ onLogin }) {
   return (
     <div style={homeStyles.page}>
-
       <nav style={homeStyles.navbar}>
-
         <div style={homeStyles.logoArea}>
-
           <div style={homeStyles.logo}>
             AI
           </div>
@@ -1953,7 +2040,6 @@ function Home({ onLogin }) {
               AI-Assisted Research Management
             </div>
           </div>
-
         </div>
 
         <button
@@ -1962,15 +2048,11 @@ function Home({ onLogin }) {
         >
           Login
         </button>
-
       </nav>
 
       <main>
-
         <section style={homeStyles.hero}>
-
           <div style={homeStyles.heroContent}>
-
             <div style={homeStyles.badge}>
               AI-ASSISTED RESEARCH PLATFORM
             </div>
@@ -1987,7 +2069,6 @@ function Home({ onLogin }) {
             </p>
 
             <div style={homeStyles.heroButtons}>
-
               <button
                 style={homeStyles.primaryButton}
                 onClick={onLogin}
@@ -2001,15 +2082,15 @@ function Home({ onLogin }) {
               >
                 Sign In
               </button>
-
             </div>
-
           </div>
 
           <div style={homeStyles.previewCard}>
-
             <div style={homeStyles.previewHeader}>
-              <span>Research Overview</span>
+              <span>
+                Research Overview
+              </span>
+
               <span style={homeStyles.liveDot}>
                 ●
               </span>
@@ -2018,43 +2099,30 @@ function Home({ onLogin }) {
             <div style={homeStyles.previewLine} />
 
             <div style={homeStyles.previewStats}>
+              <PreviewStat
+                title="Projects"
+                text="Organize your work"
+              />
 
-              <div style={homeStyles.previewStat}>
-                <strong>Projects</strong>
-                <span>
-                  Organize your work
-                </span>
-              </div>
+              <PreviewStat
+                title="Publications"
+                text="Track your papers"
+              />
 
-              <div style={homeStyles.previewStat}>
-                <strong>Publications</strong>
-                <span>
-                  Track your papers
-                </span>
-              </div>
+              <PreviewStat
+                title="Analytics"
+                text="Understand progress"
+              />
 
-              <div style={homeStyles.previewStat}>
-                <strong>Analytics</strong>
-                <span>
-                  Understand progress
-                </span>
-              </div>
-
-              <div style={homeStyles.previewStat}>
-                <strong>AI Assistant</strong>
-                <span>
-                  Research support
-                </span>
-              </div>
-
+              <PreviewStat
+                title="AI Assistant"
+                text="Research support"
+              />
             </div>
-
           </div>
-
         </section>
 
         <section style={homeStyles.featuresSection}>
-
           <div style={homeStyles.sectionHeading}>
             <p style={homeStyles.sectionEyebrow}>
               PLATFORM FEATURES
@@ -2071,7 +2139,6 @@ function Home({ onLogin }) {
           </div>
 
           <div style={homeStyles.featureGrid}>
-
             <Feature
               icon="📁"
               title="Project Management"
@@ -2095,13 +2162,10 @@ function Home({ onLogin }) {
               title="AI Assistance"
               text="Support research-related activities with intelligent AI features."
             />
-
           </div>
-
         </section>
 
         <section style={homeStyles.ctaSection}>
-
           <h2>
             Ready to manage your research?
           </h2>
@@ -2117,9 +2181,7 @@ function Home({ onLogin }) {
           >
             Open Research Tracker
           </button>
-
         </section>
-
       </main>
 
       <footer style={homeStyles.footer}>
@@ -2131,82 +2193,41 @@ function Home({ onLogin }) {
           Research • Publications • Analytics • AI
         </p>
       </footer>
-
     </div>
   );
 }
 
 // ========================================
-// FEATURE COMPONENT
+// PREVIEW STAT
 // ========================================
 
-function Feature({ icon, title, text }) {
+function PreviewStat({ title, text }) {
+  return (
+    <div style={homeStyles.previewStat}>
+      <strong>{title}</strong>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+// ========================================
+// FEATURE
+// ========================================
+
+function Feature({
+  icon,
+  title,
+  text,
+}) {
   return (
     <div style={homeStyles.featureCard}>
-
       <div style={homeStyles.featureIcon}>
         {icon}
       </div>
 
-      <h3>
-        {title}
-      </h3>
+      <h3>{title}</h3>
 
-      <p>
-        {text}
-      </p>
-
-    </div>
-  );
-}
-
-// ========================================
-// PAGINATION
-// ========================================
-
-function Pagination({
-  page,
-  totalPages,
-  onPrevious,
-  onNext,
-}) {
-  return (
-    <div style={styles.pagination}>
-
-      <button
-        style={styles.pageButton}
-        disabled={page === 1}
-        onClick={onPrevious}
-      >
-        Previous
-      </button>
-
-      <span>
-        Page {page} of {totalPages}
-      </span>
-
-      <button
-        style={styles.pageButton}
-        disabled={page === totalPages}
-        onClick={onNext}
-      >
-        Next
-      </button>
-
-    </div>
-  );
-}
-
-// ========================================
-// MODAL
-// ========================================
-
-function Modal({ children }) {
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modalCard}>
-        {children}
-      </div>
+      <p>{text}</p>
     </div>
   );
 }
@@ -2216,14 +2237,12 @@ function Modal({ children }) {
 // ========================================
 
 const styles = {
-
   dashboard: {
     minHeight: "100vh",
     background:
       "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
     padding: "35px 5%",
-    fontFamily:
-      "Inter, Arial, sans-serif",
+    fontFamily: "Inter, Arial, sans-serif",
     color: "#172033",
   },
 
@@ -2369,25 +2388,16 @@ const styles = {
     boxSizing: "border-box",
     padding: "13px 14px",
     marginBottom: "18px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "9px",
     fontSize: "14px",
     outline: "none",
   },
 
   projectCard: {
-    borderTop:
-      "1px solid #e2e8f0",
+    borderTop: "1px solid #e2e8f0",
     paddingTop: "18px",
     marginTop: "18px",
-  },
-
-  itemHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "15px",
   },
 
   itemTitle: {
@@ -2477,20 +2487,26 @@ const styles = {
     gap: "14px",
     marginTop: "22px",
     paddingTop: "17px",
-    borderTop:
-      "1px solid #e2e8f0",
+    borderTop: "1px solid #e2e8f0",
     color: "#475569",
     fontSize: "14px",
   },
 
   pageButton: {
     padding: "8px 13px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "7px",
     background: "white",
     color: "#334155",
     cursor: "pointer",
+  },
+
+  analyticsGrid: {
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: "15px",
+    marginTop: "20px",
   },
 
   modalOverlay: {
@@ -2534,8 +2550,7 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     padding: "12px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "8px",
     fontSize: "14px",
   },
@@ -2544,12 +2559,10 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
     padding: "12px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "8px",
     fontSize: "14px",
-    fontFamily:
-      "Arial, sans-serif",
+    fontFamily: "Arial, sans-serif",
     resize: "vertical",
   },
 
@@ -2562,8 +2575,7 @@ const styles = {
 
   cancelButton: {
     padding: "10px 18px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "8px",
     background: "white",
     color: "#334155",
@@ -2583,13 +2595,14 @@ const styles = {
     zIndex: 1500,
   },
 
+  // LOGIN
+
   loginPage: {
     minHeight: "100vh",
     display: "grid",
     gridTemplateColumns:
       "1.15fr 0.85fr",
-    fontFamily:
-      "Inter, Arial, sans-serif",
+    fontFamily: "Inter, Arial, sans-serif",
     background:
       "linear-gradient(135deg, #0f172a, #1e3a8a)",
   },
@@ -2698,11 +2711,9 @@ const styles = {
 // ========================================
 
 const homeStyles = {
-
   page: {
     minHeight: "100vh",
-    fontFamily:
-      "Inter, Arial, sans-serif",
+    fontFamily: "Inter, Arial, sans-serif",
     color: "#172033",
     background: "#f8fafc",
   },
@@ -2812,8 +2823,7 @@ const homeStyles = {
 
   secondaryButton: {
     padding: "13px 24px",
-    border:
-      "1px solid #cbd5e1",
+    border: "1px solid #cbd5e1",
     borderRadius: "9px",
     background: "white",
     color: "#334155",
@@ -2915,7 +2925,6 @@ const homeStyles = {
     padding: "30px 7%",
     textAlign: "center",
   },
-
 };
 
 export default App;
