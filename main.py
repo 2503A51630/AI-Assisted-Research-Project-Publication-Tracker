@@ -41,7 +41,7 @@ pwd_context = CryptContext(
 
 
 # ======================================================
-# CREATE INITIAL ADMIN
+# CREATE / UPDATE INITIAL ADMIN
 # ======================================================
 
 def create_initial_admin():
@@ -58,8 +58,7 @@ def create_initial_admin():
         "ADMIN_PASSWORD"
     )
 
-    # If Admin settings are not configured,
-    # do not create an Admin automatically.
+    # Stop if Admin settings are missing.
 
     if not all([
         admin_username,
@@ -86,18 +85,38 @@ def create_initial_admin():
             .first()
         )
 
-        # Admin already exists.
+        # ==================================================
+        # ADMIN ALREADY EXISTS
+        # ==================================================
 
         if existing_admin:
 
+            # Update email and role.
+
+            existing_admin.email = admin_email
+            existing_admin.role = "Admin"
+
+            # IMPORTANT:
+            # Reset the stored password to the
+            # password currently configured in Render.
+
+            existing_admin.hashed_password = (
+                pwd_context.hash(admin_password)
+            )
+
+            db.commit()
+
             print(
                 f"Admin user '{admin_username}' "
-                "already exists."
+                "already existed. "
+                "Password and Admin settings updated successfully."
             )
 
             return
 
-        # Hash the password before storing it.
+        # ==================================================
+        # CREATE NEW ADMIN
+        # ==================================================
 
         hashed_password = pwd_context.hash(
             admin_password
@@ -111,7 +130,6 @@ def create_initial_admin():
         )
 
         db.add(admin_user)
-
         db.commit()
 
         print(
@@ -119,12 +137,23 @@ def create_initial_admin():
             f"'{admin_username}' created successfully."
         )
 
+    except Exception as error:
+
+        db.rollback()
+
+        print(
+            "Admin creation/update failed:",
+            error
+        )
+
+        raise
+
     finally:
 
         db.close()
 
 
-# Run initial Admin creation.
+# Run Admin setup.
 
 create_initial_admin()
 
@@ -144,7 +173,7 @@ app = FastAPI(
 
 
 # ======================================================
-# CORS CONFIGURATION
+# CORS
 # ======================================================
 
 FRONTEND_URL = os.getenv(
@@ -157,34 +186,27 @@ app.add_middleware(
     CORSMiddleware,
 
     allow_origins=[
-        # Local development
         "http://localhost:5173",
         "http://127.0.0.1:5173",
 
         "http://localhost:5174",
         "http://127.0.0.1:5174",
 
-        # Render production frontend
         "https://ai-research-tracker-frontend.onrender.com",
 
-        # Environment-variable frontend URL
         FRONTEND_URL,
     ],
 
     allow_credentials=True,
 
-    allow_methods=[
-        "*"
-    ],
+    allow_methods=["*"],
 
-    allow_headers=[
-        "*"
-    ],
+    allow_headers=["*"],
 )
 
 
 # ======================================================
-# API ROUTERS
+# ROUTERS
 # ======================================================
 
 app.include_router(
@@ -205,7 +227,7 @@ app.include_router(
 
 
 # ======================================================
-# HOME ENDPOINT
+# HOME
 # ======================================================
 
 @app.get("/")
