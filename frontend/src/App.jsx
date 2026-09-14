@@ -8,9 +8,7 @@ import AIAssistant from "./AIAssistant";
 const API =
   "https://ai-research-tracker-backend-m64v.onrender.com";
 
-
 function App() {
-
   // ====================================================
   // AUTHENTICATION
   // ====================================================
@@ -22,96 +20,80 @@ function App() {
     localStorage.getItem("access_token")
   );
 
-  const [loginError, setLoginError] =
-    useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  const [loginLoading, setLoginLoading] =
+  // ====================================================
+  // USERS
+  // ====================================================
+
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  const [userUsername, setUserUsername] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPassword, setUserPassword] = useState("");
+  const [userRole, setUserRole] = useState("Researcher");
+
+  const [editingUserId, setEditingUserId] = useState(null);
+
+  // ====================================================
+  // PROJECTS
+  // ====================================================
+
+  const [projects, setProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectStatus, setProjectStatus] = useState("Active");
+
+  const [editingProjectId, setEditingProjectId] = useState(null);
+
+  // ====================================================
+  // PUBLICATIONS
+  // ====================================================
+
+  const [publications, setPublications] = useState([]);
+  const [publicationsLoading, setPublicationsLoading] =
     useState(false);
 
-
-  // ====================================================
-  // DATA
-  // ====================================================
-
-  const [projects, setProjects] =
-    useState([]);
-
-  const [publications, setPublications] =
-    useState([]);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
-
-
-  // ====================================================
-  // PROJECT FORM
-  // ====================================================
-
-  const [projectTitle, setProjectTitle] =
-    useState("");
-
-  const [projectDescription, setProjectDescription] =
-    useState("");
-
-  const [projectStatus, setProjectStatus] =
-    useState("Active");
-
-  const [editingProjectId, setEditingProjectId] =
-    useState(null);
-
-
-  // ====================================================
-  // PUBLICATION FORM
-  // ====================================================
-
-  const [publicationTitle, setPublicationTitle] =
-    useState("");
-
-  const [publicationAuthors, setPublicationAuthors] =
-    useState("");
-
-  const [publicationJournal, setPublicationJournal] =
-    useState("");
-
-  const [publicationYear, setPublicationYear] =
-    useState("");
-
-  const [publicationDoi, setPublicationDoi] =
-    useState("");
-
+  const [publicationTitle, setPublicationTitle] = useState("");
+  const [publicationAuthors, setPublicationAuthors] = useState("");
+  const [publicationJournal, setPublicationJournal] = useState("");
+  const [publicationYear, setPublicationYear] = useState("");
+  const [publicationDoi, setPublicationDoi] = useState("");
   const [publicationProjectId, setPublicationProjectId] =
     useState("");
 
   const [editingPublicationId, setEditingPublicationId] =
     useState(null);
 
+  // ====================================================
+  // COMMON MESSAGE
+  // ====================================================
+
+  const [message, setMessage] = useState("");
 
   // ====================================================
   // LOGIN
   // ====================================================
 
   const handleLogin = async (event) => {
-
     event.preventDefault();
 
     setLoginError("");
 
     if (!username.trim() || !password) {
-
       setLoginError(
         "Please enter username and password."
       );
-
       return;
     }
 
     setLoginLoading(true);
 
     try {
-
       const url =
         `${API}/auth/login` +
         `?username=${encodeURIComponent(
@@ -121,24 +103,18 @@ function App() {
           password
         )}`;
 
-      const response = await fetch(
-        url,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json"
-          }
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-
         throw new Error(
-          data.detail ||
-          "Login failed."
+          data.detail || "Login failed."
         );
       }
 
@@ -147,93 +123,132 @@ function App() {
         data.access_token
       );
 
-      setToken(
-        data.access_token
-      );
-
+      setToken(data.access_token);
       setPassword("");
-
       setLoginError("");
-
     } catch (error) {
-
-      console.error(
-        "Login error:",
-        error
-      );
+      console.error("Login error:", error);
 
       setLoginError(
         error.message ||
-        "Cannot connect to backend."
+          "Cannot connect to backend."
       );
-
     } finally {
-
       setLoginLoading(false);
     }
   };
-
 
   // ====================================================
   // LOGOUT
   // ====================================================
 
   const handleLogout = () => {
-
-    localStorage.removeItem(
-      "access_token"
-    );
+    localStorage.removeItem("access_token");
 
     setToken(null);
 
+    setUsers([]);
     setProjects([]);
-
     setPublications([]);
 
+    setMessage("");
   };
 
+  // ====================================================
+  // FETCH USERS
+  // ====================================================
+
+  const fetchUsers = async () => {
+    if (!token) {
+      return;
+    }
+
+    setUsersLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API}/users/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            Accept:
+              "application/json",
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Could not load users."
+        );
+      }
+
+      setUsers(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Users fetch error:",
+        error
+      );
+
+      setMessage(
+        error.message ||
+          "Could not load users."
+      );
+    } finally {
+      setUsersLoading(false);
+    }
+  };
 
   // ====================================================
   // FETCH PROJECTS
   // ====================================================
 
   const fetchProjects = async () => {
-
     if (!token) {
       return;
     }
 
+    setProjectsLoading(true);
+
     try {
-
-      setLoading(true);
-
       const response = await fetch(
         `${API}/projects/?page=1&limit=100`,
         {
+          method: "GET",
           headers: {
             Authorization:
               `Bearer ${token}`,
             Accept:
-              "application/json"
-          }
+              "application/json",
+          },
         }
       );
 
       if (response.status === 401) {
-
         handleLogout();
-
         return;
       }
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-
         throw new Error(
           data.detail ||
-          "Unable to load projects."
+            "Could not load projects."
         );
       }
 
@@ -242,66 +257,57 @@ function App() {
           ? data
           : []
       );
-
     } catch (error) {
-
       console.error(
-        "Project fetch error:",
+        "Projects fetch error:",
         error
       );
 
       setMessage(
         error.message ||
-        "Could not load projects."
+          "Could not load projects."
       );
-
     } finally {
-
-      setLoading(false);
+      setProjectsLoading(false);
     }
   };
-
 
   // ====================================================
   // FETCH PUBLICATIONS
   // ====================================================
 
   const fetchPublications = async () => {
-
     if (!token) {
       return;
     }
 
-    try {
+    setPublicationsLoading(true);
 
-      const response =
-        await fetch(
-          `${API}/publications/`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-              Accept:
-                "application/json"
-            }
-          }
-        );
+    try {
+      const response = await fetch(
+        `${API}/publications/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            Accept:
+              "application/json",
+          },
+        }
+      );
 
       if (response.status === 401) {
-
         handleLogout();
-
         return;
       }
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-
         throw new Error(
           data.detail ||
-          "Unable to load publications."
+            "Could not load publications."
         );
       }
 
@@ -310,61 +316,269 @@ function App() {
           ? data
           : []
       );
-
     } catch (error) {
-
       console.error(
-        "Publication fetch error:",
+        "Publications fetch error:",
         error
       );
 
       setMessage(
         error.message ||
-        "Could not load publications."
+          "Could not load publications."
       );
+    } finally {
+      setPublicationsLoading(false);
     }
   };
-
 
   // ====================================================
   // LOAD DATA AFTER LOGIN
   // ====================================================
 
   useEffect(() => {
-
     if (!token) {
       return;
     }
 
+    fetchUsers();
     fetchProjects();
-
     fetchPublications();
-
   }, [token]);
 
+  // ====================================================
+  // CLEAR USER FORM
+  // ====================================================
+
+  const clearUserForm = () => {
+    setEditingUserId(null);
+    setUserUsername("");
+    setUserEmail("");
+    setUserPassword("");
+    setUserRole("Researcher");
+  };
 
   // ====================================================
-  // CREATE / UPDATE PROJECT
+  // CREATE / UPDATE USER
+  // ====================================================
+
+  const handleUserSubmit = async (event) => {
+    event.preventDefault();
+
+    setMessage("");
+
+    if (!userUsername.trim()) {
+      setMessage(
+        "Please enter a username."
+      );
+      return;
+    }
+
+    if (!userEmail.trim()) {
+      setMessage(
+        "Please enter an email."
+      );
+      return;
+    }
+
+    if (!editingUserId && !userPassword) {
+      setMessage(
+        "Please enter a password."
+      );
+      return;
+    }
+
+    const userData = {
+      username:
+        userUsername.trim(),
+
+      email:
+        userEmail.trim(),
+
+      role:
+        userRole,
+
+      password:
+        userPassword,
+    };
+
+    try {
+      const url = editingUserId
+        ? `${API}/users/${editingUserId}`
+        : `${API}/users/`;
+
+      const method = editingUserId
+        ? "PUT"
+        : "POST";
+
+      const response = await fetch(
+        url,
+        {
+          method,
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+
+            Accept:
+              "application/json",
+          },
+
+          body:
+            JSON.stringify(
+              userData
+            ),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "User operation failed."
+        );
+      }
+
+      setMessage(
+        editingUserId
+          ? "User updated successfully."
+          : "User created successfully."
+      );
+
+      clearUserForm();
+
+      fetchUsers();
+    } catch (error) {
+      console.error(
+        "User submit error:",
+        error
+      );
+
+      setMessage(
+        error.message ||
+          "Could not save user."
+      );
+    }
+  };
+
+  // ====================================================
+  // EDIT USER
+  // ====================================================
+
+  const handleEditUser = (user) => {
+    setEditingUserId(user.id);
+
+    setUserUsername(
+      user.username || ""
+    );
+
+    setUserEmail(
+      user.email || ""
+    );
+
+    setUserRole(
+      user.role || "Researcher"
+    );
+
+    // Password is intentionally left empty.
+    // Leaving it empty means no password change.
+
+    setUserPassword("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  // ====================================================
+  // DELETE USER
+  // ====================================================
+
+  const handleDeleteUser = async (userId) => {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this user?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API}/users/${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+            Accept:
+              "application/json",
+          },
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "User deletion failed."
+        );
+      }
+
+      setMessage(
+        "User deleted successfully."
+      );
+
+      fetchUsers();
+    } catch (error) {
+      console.error(
+        "Delete user error:",
+        error
+      );
+
+      setMessage(
+        error.message ||
+          "Could not delete user."
+      );
+    }
+  };
+
+  // ====================================================
+  // PROJECT FORM
   // ====================================================
 
   const handleProjectSubmit =
     async (event) => {
-
       event.preventDefault();
 
       setMessage("");
 
       if (!projectTitle.trim()) {
-
         setMessage(
           "Please enter a project title."
         );
-
         return;
       }
 
       const projectData = {
-
         title:
           projectTitle.trim(),
 
@@ -372,196 +586,116 @@ function App() {
           projectDescription.trim(),
 
         status:
-          projectStatus
-
+          projectStatus,
       };
 
-      // -----------------------------------------------
-      // UPDATE
-      // -----------------------------------------------
-
-      if (editingProjectId) {
-
-        try {
-
-          const response =
-            await fetch(
-              `${API}/projects/${editingProjectId}`,
-              {
-                method: "PUT",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-
-                  Authorization:
-                    `Bearer ${token}`,
-
-                  Accept:
-                    "application/json"
-                },
-
-                body:
-                  JSON.stringify(
-                    projectData
-                  )
-              }
-            );
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-
-            throw new Error(
-              data.detail ||
-              "Project update failed."
-            );
-          }
-
-          setMessage(
-            "Project updated successfully."
-          );
-
-          setEditingProjectId(null);
-
-          setProjectTitle("");
-
-          setProjectDescription("");
-
-          setProjectStatus("Active");
-
-          fetchProjects();
-
-        } catch (error) {
-
-          console.error(
-            "Update project error:",
-            error
-          );
-
-          setMessage(
-            error.message
-          );
-        }
-
-        return;
-      }
-
-
-      // -----------------------------------------------
-      // CREATE
-      // -----------------------------------------------
-
       try {
+        const url = editingProjectId
+          ? `${API}/projects/${editingProjectId}`
+          : `${API}/projects/`;
 
-        const response =
-          await fetch(
-            `${API}/projects/`,
-            {
-              method: "POST",
+        const method = editingProjectId
+          ? "PUT"
+          : "POST";
 
-              headers: {
-                "Content-Type":
-                  "application/json",
+        const response = await fetch(
+          url,
+          {
+            method,
 
-                Authorization:
-                  `Bearer ${token}`,
+            headers: {
+              "Content-Type":
+                "application/json",
 
-                Accept:
-                  "application/json"
-              },
+              Authorization:
+                `Bearer ${token}`,
 
-              body:
-                JSON.stringify(
-                  projectData
-                )
-            }
-          );
+              Accept:
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                projectData
+              ),
+          }
+        );
 
         const data =
           await response.json();
 
-        if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
 
+        if (!response.ok) {
           throw new Error(
             data.detail ||
-            "Project creation failed."
+              "Project operation failed."
           );
         }
 
         setMessage(
-          "Project created successfully."
+          editingProjectId
+            ? "Project updated successfully."
+            : "Project created successfully."
         );
 
+        setEditingProjectId(null);
         setProjectTitle("");
-
         setProjectDescription("");
-
         setProjectStatus("Active");
 
         fetchProjects();
-
       } catch (error) {
-
         console.error(
-          "Create project error:",
+          "Project error:",
           error
         );
 
         setMessage(
           error.message ||
-          "Could not create project."
+            "Could not save project."
         );
       }
     };
-
 
   // ====================================================
   // EDIT PROJECT
   // ====================================================
 
-  const handleEditProject =
-    (project) => {
+  const handleEditProject = (project) => {
+    setEditingProjectId(project.id);
 
-      setEditingProjectId(
-        project.id
-      );
+    setProjectTitle(
+      project.title || ""
+    );
 
-      setProjectTitle(
-        project.title || ""
-      );
+    setProjectDescription(
+      project.description || ""
+    );
 
-      setProjectDescription(
-        project.description || ""
-      );
+    setProjectStatus(
+      project.status || "Active"
+    );
 
-      setProjectStatus(
-        project.status || "Active"
-      );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-    };
-
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   // ====================================================
   // CANCEL PROJECT EDIT
   // ====================================================
 
   const cancelProjectEdit = () => {
-
     setEditingProjectId(null);
-
     setProjectTitle("");
-
     setProjectDescription("");
-
     setProjectStatus("Active");
   };
-
 
   // ====================================================
   // DELETE PROJECT
@@ -569,7 +703,6 @@ function App() {
 
   const handleDeleteProject =
     async (projectId) => {
-
       const confirmed =
         window.confirm(
           "Are you sure you want to delete this project?"
@@ -580,7 +713,6 @@ function App() {
       }
 
       try {
-
         const response =
           await fetch(
             `${API}/projects/${projectId}`,
@@ -592,19 +724,23 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json"
-              }
+                  "application/json",
+              },
             }
           );
 
         const data =
           await response.json();
 
-        if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
 
+        if (!response.ok) {
           throw new Error(
             data.detail ||
-            "Project deletion failed."
+              "Project deletion failed."
           );
         }
 
@@ -613,11 +749,8 @@ function App() {
         );
 
         fetchProjects();
-
         fetchPublications();
-
       } catch (error) {
-
         console.error(
           "Delete project error:",
           error
@@ -625,34 +758,29 @@ function App() {
 
         setMessage(
           error.message ||
-          "Could not delete project."
+            "Could not delete project."
         );
       }
     };
 
-
   // ====================================================
-  // CREATE / UPDATE PUBLICATION
+  // PUBLICATION FORM
   // ====================================================
 
   const handlePublicationSubmit =
     async (event) => {
-
       event.preventDefault();
 
       setMessage("");
 
       if (!publicationTitle.trim()) {
-
         setMessage(
           "Please enter a publication title."
         );
-
         return;
       }
 
       const publicationData = {
-
         title:
           publicationTitle.trim(),
 
@@ -677,89 +805,25 @@ function App() {
             ? Number(
                 publicationProjectId
               )
-            : null
-
+            : null,
       };
 
-
-      // -----------------------------------------------
-      // UPDATE PUBLICATION
-      // -----------------------------------------------
-
-      if (editingPublicationId) {
-
-        try {
-
-          const response =
-            await fetch(
-              `${API}/publications/${editingPublicationId}`,
-              {
-                method: "PUT",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-
-                  Authorization:
-                    `Bearer ${token}`,
-
-                  Accept:
-                    "application/json"
-                },
-
-                body:
-                  JSON.stringify(
-                    publicationData
-                  )
-              }
-            );
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-
-            throw new Error(
-              data.detail ||
-              "Publication update failed."
-            );
-          }
-
-          setMessage(
-            "Publication updated successfully."
-          );
-
-          clearPublicationForm();
-
-          fetchPublications();
-
-        } catch (error) {
-
-          console.error(
-            "Update publication error:",
-            error
-          );
-
-          setMessage(
-            error.message
-          );
-        }
-
-        return;
-      }
-
-
-      // -----------------------------------------------
-      // CREATE PUBLICATION
-      // -----------------------------------------------
-
       try {
+        const url =
+          editingPublicationId
+            ? `${API}/publications/${editingPublicationId}`
+            : `${API}/publications/`;
+
+        const method =
+          editingPublicationId
+            ? "PUT"
+            : "POST";
 
         const response =
           await fetch(
-            `${API}/publications/`,
+            url,
             {
-              method: "POST",
+              method,
 
               headers: {
                 "Content-Type":
@@ -769,49 +833,52 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json"
+                  "application/json",
               },
 
               body:
                 JSON.stringify(
                   publicationData
-                )
+                ),
             }
           );
 
         const data =
           await response.json();
 
-        if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
 
+        if (!response.ok) {
           throw new Error(
             data.detail ||
-            "Publication creation failed."
+              "Publication operation failed."
           );
         }
 
         setMessage(
-          "Publication created successfully."
+          editingPublicationId
+            ? "Publication updated successfully."
+            : "Publication created successfully."
         );
 
         clearPublicationForm();
 
         fetchPublications();
-
       } catch (error) {
-
         console.error(
-          "Create publication error:",
+          "Publication error:",
           error
         );
 
         setMessage(
           error.message ||
-          "Could not create publication."
+            "Could not save publication."
         );
       }
     };
-
 
   // ====================================================
   // CLEAR PUBLICATION FORM
@@ -819,22 +886,15 @@ function App() {
 
   const clearPublicationForm =
     () => {
-
       setEditingPublicationId(null);
 
       setPublicationTitle("");
-
       setPublicationAuthors("");
-
       setPublicationJournal("");
-
       setPublicationYear("");
-
       setPublicationDoi("");
-
       setPublicationProjectId("");
     };
-
 
   // ====================================================
   // EDIT PUBLICATION
@@ -842,7 +902,6 @@ function App() {
 
   const handleEditPublication =
     (publication) => {
-
       setEditingPublicationId(
         publication.id
       );
@@ -873,10 +932,9 @@ function App() {
 
       window.scrollTo({
         top: 0,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     };
-
 
   // ====================================================
   // DELETE PUBLICATION
@@ -884,7 +942,6 @@ function App() {
 
   const handleDeletePublication =
     async (publicationId) => {
-
       const confirmed =
         window.confirm(
           "Are you sure you want to delete this publication?"
@@ -895,7 +952,6 @@ function App() {
       }
 
       try {
-
         const response =
           await fetch(
             `${API}/publications/${publicationId}`,
@@ -907,19 +963,23 @@ function App() {
                   `Bearer ${token}`,
 
                 Accept:
-                  "application/json"
-              }
+                  "application/json",
+              },
             }
           );
 
         const data =
           await response.json();
 
-        if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
 
+        if (!response.ok) {
           throw new Error(
             data.detail ||
-            "Publication deletion failed."
+              "Publication deletion failed."
           );
         }
 
@@ -928,9 +988,7 @@ function App() {
         );
 
         fetchPublications();
-
       } catch (error) {
-
         console.error(
           "Delete publication error:",
           error
@@ -938,21 +996,18 @@ function App() {
 
         setMessage(
           error.message ||
-          "Could not delete publication."
+            "Could not delete publication."
         );
       }
     };
-
 
   // ====================================================
   // LOGIN PAGE
   // ====================================================
 
   if (!token) {
-
     return (
       <div style={styles.page}>
-
         <div style={styles.loginCard}>
 
           <div style={styles.logo}>
@@ -971,7 +1026,8 @@ function App() {
 
           <p style={styles.description}>
             Securely manage research projects,
-            publications, and research activities.
+            publications, users, and research
+            activities.
           </p>
 
           <form onSubmit={handleLogin}>
@@ -989,6 +1045,7 @@ function App() {
                 )
               }
               placeholder="Enter username"
+              autoComplete="username"
               style={styles.input}
             />
 
@@ -1005,15 +1062,14 @@ function App() {
                 )
               }
               placeholder="Enter password"
+              autoComplete="current-password"
               style={styles.input}
             />
 
             {loginError && (
-
               <div style={styles.errorCard}>
                 {loginError}
               </div>
-
             )}
 
             <button
@@ -1029,23 +1085,20 @@ function App() {
           </form>
 
         </div>
-
       </div>
     );
   }
-
 
   // ====================================================
   // DASHBOARD
   // ====================================================
 
   return (
-
     <div style={styles.page}>
 
-      {/* ================================================
-          TOP BAR
-      ================================================ */}
+      {/* ==================================================
+          HEADER
+      ================================================== */}
 
       <header style={styles.topBar}>
 
@@ -1073,24 +1126,35 @@ function App() {
 
       <main style={styles.main}>
 
-        {/* ==============================================
+        {/* =================================================
             MESSAGE
-        ============================================== */}
+        ================================================== */}
 
         {message && (
-
           <div style={styles.messageCard}>
             {message}
           </div>
-
         )}
 
 
-        {/* ==============================================
-            STATISTICS
-        ============================================== */}
+        {/* =================================================
+            STATS
+        ================================================== */}
 
         <div style={styles.statsGrid}>
+
+          <div style={styles.statCard}>
+
+            <p style={styles.statLabel}>
+              USERS
+            </p>
+
+            <h2 style={styles.statNumber}>
+              {users.length}
+            </h2>
+
+          </div>
+
 
           <div style={styles.statCard}>
 
@@ -1133,18 +1197,243 @@ function App() {
         </div>
 
 
-        {/* ==============================================
-            PROJECT FORM
-        ============================================== */}
+        {/* =================================================
+            USERS
+        ================================================== */}
 
         <section style={styles.section}>
 
           <h2 style={styles.sectionTitle}>
+            {editingUserId
+              ? "Edit User"
+              : "Create User"}
+          </h2>
 
+
+          <form
+            onSubmit={handleUserSubmit}
+            style={styles.form}
+          >
+
+            <input
+              type="text"
+              value={userUsername}
+              onChange={(event) =>
+                setUserUsername(
+                  event.target.value
+                )
+              }
+              placeholder="Username"
+              style={styles.input}
+            />
+
+
+            <input
+              type="email"
+              value={userEmail}
+              onChange={(event) =>
+                setUserEmail(
+                  event.target.value
+                )
+              }
+              placeholder="Email"
+              style={styles.input}
+            />
+
+
+            <input
+              type="password"
+              value={userPassword}
+              onChange={(event) =>
+                setUserPassword(
+                  event.target.value
+                )
+              }
+              placeholder={
+                editingUserId
+                  ? "New password (optional)"
+                  : "Password"
+              }
+              style={styles.input}
+            />
+
+
+            <select
+              value={userRole}
+              onChange={(event) =>
+                setUserRole(
+                  event.target.value
+                )
+              }
+              style={styles.input}
+            >
+
+              <option value="Researcher">
+                Researcher
+              </option>
+
+              <option value="Admin">
+                Admin
+              </option>
+
+            </select>
+
+
+            <div style={styles.buttonRow}>
+
+              <button
+                type="submit"
+                style={styles.primaryButton}
+              >
+                {editingUserId
+                  ? "Update User"
+                  : "Create User"}
+              </button>
+
+
+              {editingUserId && (
+
+                <button
+                  type="button"
+                  onClick={
+                    clearUserForm
+                  }
+                  style={
+                    styles.secondaryButton
+                  }
+                >
+                  Cancel
+                </button>
+
+              )}
+
+            </div>
+
+          </form>
+
+        </section>
+
+
+        {/* =================================================
+            USER LIST
+        ================================================== */}
+
+        <section style={styles.section}>
+
+          <div style={styles.sectionHeader}>
+
+            <h2 style={styles.sectionTitle}>
+              Users
+            </h2>
+
+            <button
+              onClick={fetchUsers}
+              style={styles.secondaryButton}
+            >
+              Refresh
+            </button>
+
+          </div>
+
+
+          {usersLoading ? (
+
+            <p style={styles.emptyText}>
+              Loading users...
+            </p>
+
+          ) : users.length === 0 ? (
+
+            <p style={styles.emptyText}>
+              No users available.
+            </p>
+
+          ) : (
+
+            <div style={styles.grid}>
+
+              {users.map((user) => (
+
+                <div
+                  key={user.id}
+                  style={styles.itemCard}
+                >
+
+                  <h3>
+                    {user.username}
+                  </h3>
+
+                  <p>
+                    <strong>
+                      Email:
+                    </strong>{" "}
+                    {user.email}
+                  </p>
+
+                  <p>
+                    <strong>
+                      Role:
+                    </strong>{" "}
+                    {user.role}
+                  </p>
+
+
+                  <div
+                    style={
+                      styles.actionRow
+                    }
+                  >
+
+                    <button
+                      onClick={() =>
+                        handleEditUser(
+                          user
+                        )
+                      }
+                      style={
+                        styles.editButton
+                      }
+                    >
+                      Edit
+                    </button>
+
+
+                    <button
+                      onClick={() =>
+                        handleDeleteUser(
+                          user.id
+                        )
+                      }
+                      style={
+                        styles.deleteButton
+                      }
+                    >
+                      Delete
+                    </button>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </section>
+
+
+        {/* =================================================
+            PROJECT FORM
+        ================================================== */}
+
+        <section style={styles.section}>
+
+          <h2 style={styles.sectionTitle}>
             {editingProjectId
               ? "Edit Research Project"
               : "Create Research Project"}
-
           </h2>
 
 
@@ -1206,11 +1495,9 @@ function App() {
                 type="submit"
                 style={styles.primaryButton}
               >
-
                 {editingProjectId
                   ? "Update Project"
                   : "Create Project"}
-
               </button>
 
 
@@ -1237,9 +1524,9 @@ function App() {
         </section>
 
 
-        {/* ==============================================
-            PROJECTS
-        ============================================== */}
+        {/* =================================================
+            PROJECT LIST
+        ================================================== */}
 
         <section style={styles.section}>
 
@@ -1259,7 +1546,7 @@ function App() {
           </div>
 
 
-          {loading ? (
+          {projectsLoading ? (
 
             <p style={styles.emptyText}>
               Loading projects...
@@ -1346,18 +1633,16 @@ function App() {
         </section>
 
 
-        {/* ==============================================
+        {/* =================================================
             PUBLICATION FORM
-        ============================================== */}
+        ================================================== */}
 
         <section style={styles.section}>
 
           <h2 style={styles.sectionTitle}>
-
             {editingPublicationId
               ? "Edit Publication"
               : "Create Publication"}
-
           </h2>
 
 
@@ -1469,11 +1754,9 @@ function App() {
                 type="submit"
                 style={styles.primaryButton}
               >
-
                 {editingPublicationId
                   ? "Update Publication"
                   : "Create Publication"}
-
               </button>
 
 
@@ -1500,9 +1783,9 @@ function App() {
         </section>
 
 
-        {/* ==============================================
+        {/* =================================================
             PUBLICATIONS
-        ============================================== */}
+        ================================================== */}
 
         <section style={styles.section}>
 
@@ -1522,7 +1805,13 @@ function App() {
           </div>
 
 
-          {publications.length === 0 ? (
+          {publicationsLoading ? (
+
+            <p style={styles.emptyText}>
+              Loading publications...
+            </p>
+
+          ) : publications.length === 0 ? (
 
             <p style={styles.emptyText}>
               No publications available.
@@ -1627,9 +1916,9 @@ function App() {
         </section>
 
 
-        {/* ==============================================
+        {/* =================================================
             AI ASSISTANT
-        ============================================== */}
+        ================================================== */}
 
         <AIAssistant />
 
@@ -1651,7 +1940,7 @@ const styles = {
     backgroundColor: "#f1f5f9",
     fontFamily:
       "Arial, Helvetica, sans-serif",
-    color: "#0f172a"
+    color: "#0f172a",
   },
 
   topBar: {
@@ -1662,14 +1951,14 @@ const styles = {
       "space-between",
     alignItems: "center",
     borderBottom:
-      "1px solid #e2e8f0"
+      "1px solid #e2e8f0",
   },
 
   main: {
     maxWidth: "1400px",
     margin: "0 auto",
     padding: "30px",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
   },
 
   eyebrow: {
@@ -1677,13 +1966,12 @@ const styles = {
     color: "#2563eb",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "1.5px"
+    letterSpacing: "1.5px",
   },
 
   heading: {
-    margin:
-      "6px 0 0",
-    fontSize: "30px"
+    margin: "6px 0 0",
+    fontSize: "30px",
   },
 
   loginCard: {
@@ -1695,7 +1983,7 @@ const styles = {
     borderRadius: "18px",
     boxSizing: "border-box",
     boxShadow:
-      "0 10px 35px rgba(15,23,42,0.08)"
+      "0 10px 35px rgba(15,23,42,0.08)",
   },
 
   logo: {
@@ -1709,19 +1997,19 @@ const styles = {
     justifyContent: "center",
     fontSize: "20px",
     fontWeight: "800",
-    marginBottom: "18px"
+    marginBottom: "18px",
   },
 
   loginTitle: {
     margin: "10px 0",
     fontSize: "28px",
-    lineHeight: "1.25"
+    lineHeight: "1.25",
   },
 
   description: {
     color: "#64748b",
     lineHeight: "1.6",
-    marginBottom: "25px"
+    marginBottom: "25px",
   },
 
   label: {
@@ -1730,7 +2018,7 @@ const styles = {
     marginTop: "16px",
     fontSize: "14px",
     fontWeight: "700",
-    color: "#334155"
+    color: "#334155",
   },
 
   input: {
@@ -1741,7 +2029,7 @@ const styles = {
       "1px solid #cbd5e1",
     borderRadius: "9px",
     fontSize: "14px",
-    outline: "none"
+    outline: "none",
   },
 
   textarea: {
@@ -1754,7 +2042,7 @@ const styles = {
     fontSize: "14px",
     resize: "vertical",
     fontFamily:
-      "Arial, Helvetica, sans-serif"
+      "Arial, Helvetica, sans-serif",
   },
 
   loginButton: {
@@ -1766,7 +2054,7 @@ const styles = {
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   logoutButton: {
@@ -1777,7 +2065,7 @@ const styles = {
     backgroundColor: "white",
     color: "#334155",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   errorCard: {
@@ -1787,7 +2075,7 @@ const styles = {
     backgroundColor: "#fee2e2",
     color: "#b91c1c",
     fontWeight: "600",
-    fontSize: "13px"
+    fontSize: "13px",
   },
 
   messageCard: {
@@ -1796,7 +2084,7 @@ const styles = {
     borderRadius: "10px",
     backgroundColor: "#dbeafe",
     color: "#1d4ed8",
-    fontWeight: "600"
+    fontWeight: "600",
   },
 
   statsGrid: {
@@ -1804,7 +2092,7 @@ const styles = {
     gridTemplateColumns:
       "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "18px",
-    marginBottom: "25px"
+    marginBottom: "25px",
   },
 
   statCard: {
@@ -1812,7 +2100,7 @@ const styles = {
     padding: "23px",
     borderRadius: "14px",
     border:
-      "1px solid #e2e8f0"
+      "1px solid #e2e8f0",
   },
 
   statLabel: {
@@ -1820,17 +2108,17 @@ const styles = {
     color: "#64748b",
     fontSize: "11px",
     fontWeight: "800",
-    letterSpacing: "1px"
+    letterSpacing: "1px",
   },
 
   statNumber: {
     margin: "8px 0 0",
-    fontSize: "30px"
+    fontSize: "30px",
   },
 
   connected: {
     margin: "8px 0 0",
-    fontSize: "20px"
+    fontSize: "20px",
   },
 
   section: {
@@ -1839,7 +2127,7 @@ const styles = {
     borderRadius: "15px",
     border:
       "1px solid #e2e8f0",
-    marginBottom: "25px"
+    marginBottom: "25px",
   },
 
   sectionHeader: {
@@ -1847,23 +2135,23 @@ const styles = {
     justifyContent:
       "space-between",
     alignItems: "center",
-    marginBottom: "18px"
+    marginBottom: "18px",
   },
 
   sectionTitle: {
     margin: 0,
-    fontSize: "21px"
+    fontSize: "21px",
   },
 
   form: {
     display: "grid",
-    gap: "12px"
+    gap: "12px",
   },
 
   buttonRow: {
     display: "flex",
     gap: "10px",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
   },
 
   primaryButton: {
@@ -1873,7 +2161,7 @@ const styles = {
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   secondaryButton: {
@@ -1884,14 +2172,14 @@ const styles = {
     backgroundColor: "white",
     color: "#334155",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   grid: {
     display: "grid",
     gridTemplateColumns:
       "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "15px"
+    gap: "15px",
   },
 
   itemCard: {
@@ -1899,7 +2187,7 @@ const styles = {
     borderRadius: "12px",
     border:
       "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc"
+    backgroundColor: "#f8fafc",
   },
 
   badge: {
@@ -1910,13 +2198,13 @@ const styles = {
     backgroundColor: "#dbeafe",
     color: "#1d4ed8",
     fontSize: "12px",
-    fontWeight: "700"
+    fontWeight: "700",
   },
 
   actionRow: {
     display: "flex",
     gap: "8px",
-    marginTop: "15px"
+    marginTop: "15px",
   },
 
   editButton: {
@@ -1926,7 +2214,7 @@ const styles = {
     backgroundColor: "#2563eb",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   deleteButton: {
@@ -1936,13 +2224,12 @@ const styles = {
     backgroundColor: "#dc2626",
     color: "white",
     fontWeight: "700",
-    cursor: "pointer"
+    cursor: "pointer",
   },
 
   emptyText: {
-    color: "#64748b"
-  }
+    color: "#64748b",
+  },
 };
-
 
 export default App;
