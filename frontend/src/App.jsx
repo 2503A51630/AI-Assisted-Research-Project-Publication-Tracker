@@ -2,92 +2,112 @@ import { useEffect, useState } from "react";
 import AIAssistant from "./AIAssistant";
 
 // ======================================================
-// RENDER BACKEND URL
+// DEPLOYED RENDER BACKEND
 // ======================================================
-const API =
-  "https://ai-research-tracker-backend-m64v.onrender.com";
+const API = "https://ai-research-tracker-backend-m64v.onrender.com";
 
 function App() {
   // ======================================================
-  // LOGIN STATE
+  // LOGIN
   // ======================================================
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
   const [token, setToken] = useState(
     localStorage.getItem("access_token")
   );
 
   const [loginError, setLoginError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // ======================================================
-  // DASHBOARD DATA
+  // DATA
   // ======================================================
   const [projects, setProjects] = useState([]);
   const [publications, setPublications] = useState([]);
 
-  const [projectLoading, setProjectLoading] = useState(false);
-  const [publicationLoading, setPublicationLoading] = useState(false);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [publicationsLoading, setPublicationsLoading] =
+    useState(false);
+
+  const [message, setMessage] = useState("");
 
   // ======================================================
-  // CREATE PROJECT FORM
+  // PROJECT FORM
   // ======================================================
   const [projectTitle, setProjectTitle] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
+  const [projectDescription, setProjectDescription] =
+    useState("");
   const [projectStatus, setProjectStatus] = useState("Active");
 
   // ======================================================
-  // CREATE PUBLICATION FORM
+  // PUBLICATION FORM
   // ======================================================
-  const [publicationTitle, setPublicationTitle] = useState("");
+  const [publicationTitle, setPublicationTitle] =
+    useState("");
   const [publicationAuthors, setPublicationAuthors] =
     useState("");
   const [publicationJournal, setPublicationJournal] =
     useState("");
-  const [publicationYear, setPublicationYear] = useState("");
-  const [publicationDoi, setPublicationDoi] = useState("");
+  const [publicationYear, setPublicationYear] =
+    useState("");
+  const [publicationDoi, setPublicationDoi] =
+    useState("");
   const [publicationProjectId, setPublicationProjectId] =
     useState("");
 
   // ======================================================
-  // MESSAGE
-  // ======================================================
-  const [message, setMessage] = useState("");
-
-  // ======================================================
   // LOGIN
   // ======================================================
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (event) => {
+    event.preventDefault();
 
     setLoginError("");
     setMessage("");
 
-    if (!username.trim() || !password.trim()) {
+    const cleanUsername = username.trim();
+    const cleanPassword = password;
+
+    if (!cleanUsername || !cleanPassword) {
       setLoginError(
-        "Please enter username and password."
+        "Please enter both username and password."
       );
       return;
     }
 
-    setLoading(true);
+    setLoginLoading(true);
 
     try {
-      const response = await fetch(
-        `${API}/auth/login?username=${encodeURIComponent(
-          username
-        )}&password=${encodeURIComponent(password)}`,
-        {
-          method: "POST",
-        }
-      );
+      const url =
+        `${API}/auth/login` +
+        `?username=${encodeURIComponent(cleanUsername)}` +
+        `&password=${encodeURIComponent(cleanPassword)}`;
 
-      const data = await response.json();
+      console.log("Connecting to backend:", API);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Login failed."
+          data.detail || `Login failed (${response.status}).`
+        );
+      }
+
+      if (!data.access_token) {
+        throw new Error(
+          "Backend did not return an access token."
         );
       }
 
@@ -100,13 +120,13 @@ function App() {
       setPassword("");
       setLoginError("");
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("LOGIN ERROR:", error);
 
       setLoginError(
-        "Cannot connect to backend. Please check the server and try again."
+        "Cannot connect to backend. Please try again."
       );
     } finally {
-      setLoading(false);
+      setLoginLoading(false);
     }
   };
 
@@ -122,15 +142,18 @@ function App() {
 
     setUsername("");
     setPassword("");
+    setMessage("");
   };
 
   // ======================================================
-  // FETCH PROJECTS
+  // GET PROJECTS
   // ======================================================
   const fetchProjects = async () => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
-    setProjectLoading(true);
+    setProjectsLoading(true);
 
     try {
       const response = await fetch(
@@ -138,41 +161,48 @@ function App() {
         {
           method: "GET",
           headers: {
+            Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Failed to load projects."
+          data.detail || "Could not load projects."
         );
       }
 
-      setProjects(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(
-        "Project fetch error:",
-        error
+      setProjects(
+        Array.isArray(data) ? data : []
       );
+    } catch (error) {
+      console.error("PROJECT ERROR:", error);
 
       setMessage(
-        "Could not load projects from backend."
+        "Could not load projects from the backend."
       );
     } finally {
-      setProjectLoading(false);
+      setProjectsLoading(false);
     }
   };
 
   // ======================================================
-  // FETCH PUBLICATIONS
+  // GET PUBLICATIONS
   // ======================================================
   const fetchPublications = async () => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
-    setPublicationLoading(true);
+    setPublicationsLoading(true);
 
     try {
       const response = await fetch(
@@ -180,17 +210,23 @@ function App() {
         {
           method: "GET",
           headers: {
+            Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
       );
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
           data.detail ||
-            "Failed to load publications."
+            "Could not load publications."
         );
       }
 
@@ -199,23 +235,25 @@ function App() {
       );
     } catch (error) {
       console.error(
-        "Publication fetch error:",
+        "PUBLICATION ERROR:",
         error
       );
 
       setMessage(
-        "Could not load publications from backend."
+        "Could not load publications from the backend."
       );
     } finally {
-      setPublicationLoading(false);
+      setPublicationsLoading(false);
     }
   };
 
   // ======================================================
-  // LOAD DASHBOARD DATA
+  // LOAD DATA AFTER LOGIN
   // ======================================================
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
 
     fetchProjects();
     fetchPublications();
@@ -224,8 +262,8 @@ function App() {
   // ======================================================
   // CREATE PROJECT
   // ======================================================
-  const handleCreateProject = async (e) => {
-    e.preventDefault();
+  const handleCreateProject = async (event) => {
+    event.preventDefault();
 
     setMessage("");
 
@@ -241,11 +279,13 @@ function App() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title: projectTitle,
-            description: projectDescription,
+            title: projectTitle.trim(),
+            description:
+              projectDescription.trim(),
             status: projectStatus,
           }),
         }
@@ -253,9 +293,15 @@ function App() {
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(
-          data.detail || "Project creation failed."
+          data.detail ||
+            "Project creation failed."
         );
       }
 
@@ -270,7 +316,7 @@ function App() {
       fetchProjects();
     } catch (error) {
       console.error(
-        "Create project error:",
+        "CREATE PROJECT ERROR:",
         error
       );
 
@@ -284,8 +330,10 @@ function App() {
   // ======================================================
   // CREATE PUBLICATION
   // ======================================================
-  const handleCreatePublication = async (e) => {
-    e.preventDefault();
+  const handleCreatePublication = async (
+    event
+  ) => {
+    event.preventDefault();
 
     setMessage("");
 
@@ -303,17 +351,21 @@ function App() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title: publicationTitle,
-            authors: publicationAuthors,
-            journal: publicationJournal,
+            title: publicationTitle.trim(),
+            authors:
+              publicationAuthors.trim(),
+            journal:
+              publicationJournal.trim(),
             publication_year:
               publicationYear
                 ? Number(publicationYear)
                 : null,
-            doi: publicationDoi,
+            doi:
+              publicationDoi.trim(),
             project_id:
               publicationProjectId
                 ? Number(publicationProjectId)
@@ -323,6 +375,11 @@ function App() {
       );
 
       const data = await response.json();
+
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -345,7 +402,7 @@ function App() {
       fetchPublications();
     } catch (error) {
       console.error(
-        "Create publication error:",
+        "CREATE PUBLICATION ERROR:",
         error
       );
 
@@ -357,32 +414,30 @@ function App() {
   };
 
   // ======================================================
-  // LOGIN SCREEN
+  // LOGIN PAGE
   // ======================================================
   if (!token) {
     return (
       <div style={styles.page}>
         <div style={styles.loginCard}>
-          <div style={styles.loginHeader}>
-            <div style={styles.logo}>
-              AI
-            </div>
-
-            <p style={styles.eyebrow}>
-              RESEARCH MANAGEMENT SYSTEM
-            </p>
-
-            <h1 style={styles.loginTitle}>
-              AI-Assisted Research
-              <br />
-              Project & Publication Tracker
-            </h1>
-
-            <p style={styles.loginDescription}>
-              Securely manage research projects,
-              publications, and research activities.
-            </p>
+          <div style={styles.logo}>
+            AI
           </div>
+
+          <p style={styles.eyebrow}>
+            RESEARCH MANAGEMENT SYSTEM
+          </p>
+
+          <h1 style={styles.loginTitle}>
+            AI-Assisted Research
+            <br />
+            Project & Publication Tracker
+          </h1>
+
+          <p style={styles.description}>
+            Securely manage research projects,
+            publications, and research activities.
+          </p>
 
           <form onSubmit={handleLogin}>
             <label style={styles.label}>
@@ -392,29 +447,26 @@ function App() {
             <input
               type="text"
               value={username}
-              onChange={(e) =>
-                setUsername(e.target.value)
+              onChange={(event) =>
+                setUsername(event.target.value)
               }
               placeholder="Enter username"
+              autoComplete="username"
               style={styles.input}
             />
 
-            <label
-              style={{
-                ...styles.label,
-                marginTop: "16px",
-              }}
-            >
+            <label style={styles.label}>
               Password
             </label>
 
             <input
               type="password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
+              onChange={(event) =>
+                setPassword(event.target.value)
               }
               placeholder="Enter password"
+              autoComplete="current-password"
               style={styles.input}
             />
 
@@ -426,10 +478,10 @@ function App() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loginLoading}
               style={styles.loginButton}
             >
-              {loading
+              {loginLoading
                 ? "Connecting..."
                 : "Login"}
             </button>
@@ -444,7 +496,6 @@ function App() {
   // ======================================================
   return (
     <div style={styles.page}>
-      {/* HEADER */}
       <header style={styles.topBar}>
         <div>
           <p style={styles.eyebrow}>
@@ -465,14 +516,15 @@ function App() {
       </header>
 
       <main style={styles.main}>
-        {/* MESSAGE */}
         {message && (
           <div style={styles.messageCard}>
             {message}
           </div>
         )}
 
-        {/* STATISTICS */}
+        {/* ==================================================
+            STATISTICS
+        ================================================== */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <p style={styles.statLabel}>
@@ -499,13 +551,15 @@ function App() {
               API STATUS
             </p>
 
-            <h2 style={styles.statusNumber}>
+            <h2 style={styles.connected}>
               Connected
             </h2>
           </div>
         </div>
 
-        {/* CREATE PROJECT */}
+        {/* ==================================================
+            CREATE PROJECT
+        ================================================== */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Create Research Project
@@ -518,8 +572,10 @@ function App() {
             <input
               type="text"
               value={projectTitle}
-              onChange={(e) =>
-                setProjectTitle(e.target.value)
+              onChange={(event) =>
+                setProjectTitle(
+                  event.target.value
+                )
               }
               placeholder="Project title"
               style={styles.input}
@@ -527,9 +583,9 @@ function App() {
 
             <textarea
               value={projectDescription}
-              onChange={(e) =>
+              onChange={(event) =>
                 setProjectDescription(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Project description"
@@ -539,8 +595,10 @@ function App() {
 
             <select
               value={projectStatus}
-              onChange={(e) =>
-                setProjectStatus(e.target.value)
+              onChange={(event) =>
+                setProjectStatus(
+                  event.target.value
+                )
               }
               style={styles.input}
             >
@@ -562,7 +620,9 @@ function App() {
           </form>
         </section>
 
-        {/* PROJECTS */}
+        {/* ==================================================
+            PROJECT LIST
+        ================================================== */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>
@@ -577,7 +637,7 @@ function App() {
             </button>
           </div>
 
-          {projectLoading ? (
+          {projectsLoading ? (
             <p style={styles.emptyText}>
               Loading projects...
             </p>
@@ -586,7 +646,7 @@ function App() {
               No projects available.
             </p>
           ) : (
-            <div style={styles.listGrid}>
+            <div style={styles.grid}>
               {projects.map((project) => (
                 <div
                   key={project.id}
@@ -610,22 +670,26 @@ function App() {
           )}
         </section>
 
-        {/* CREATE PUBLICATION */}
+        {/* ==================================================
+            CREATE PUBLICATION
+        ================================================== */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>
             Create Publication
           </h2>
 
           <form
-            onSubmit={handleCreatePublication}
+            onSubmit={
+              handleCreatePublication
+            }
             style={styles.form}
           >
             <input
               type="text"
               value={publicationTitle}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationTitle(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Publication title"
@@ -635,9 +699,9 @@ function App() {
             <input
               type="text"
               value={publicationAuthors}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationAuthors(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Authors"
@@ -647,9 +711,9 @@ function App() {
             <input
               type="text"
               value={publicationJournal}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationJournal(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Journal name"
@@ -659,9 +723,9 @@ function App() {
             <input
               type="number"
               value={publicationYear}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationYear(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="Publication year"
@@ -671,9 +735,9 @@ function App() {
             <input
               type="text"
               value={publicationDoi}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationDoi(
-                  e.target.value
+                  event.target.value
                 )
               }
               placeholder="DOI link"
@@ -682,9 +746,9 @@ function App() {
 
             <select
               value={publicationProjectId}
-              onChange={(e) =>
+              onChange={(event) =>
                 setPublicationProjectId(
-                  e.target.value
+                  event.target.value
                 )
               }
               style={styles.input}
@@ -712,7 +776,9 @@ function App() {
           </form>
         </section>
 
-        {/* PUBLICATIONS */}
+        {/* ==================================================
+            PUBLICATION LIST
+        ================================================== */}
         <section style={styles.section}>
           <div style={styles.sectionHeader}>
             <h2 style={styles.sectionTitle}>
@@ -727,7 +793,7 @@ function App() {
             </button>
           </div>
 
-          {publicationLoading ? (
+          {publicationsLoading ? (
             <p style={styles.emptyText}>
               Loading publications...
             </p>
@@ -736,7 +802,7 @@ function App() {
               No publications available.
             </p>
           ) : (
-            <div style={styles.listGrid}>
+            <div style={styles.grid}>
               {publications.map(
                 (publication) => (
                   <div
@@ -748,26 +814,34 @@ function App() {
                     </h3>
 
                     <p>
-                      <strong>Authors:</strong>{" "}
+                      <strong>
+                        Authors:
+                      </strong>{" "}
                       {publication.authors ||
                         "Not specified"}
                     </p>
 
                     <p>
-                      <strong>Journal:</strong>{" "}
+                      <strong>
+                        Journal:
+                      </strong>{" "}
                       {publication.journal ||
                         "Not specified"}
                     </p>
 
                     <p>
-                      <strong>Year:</strong>{" "}
+                      <strong>
+                        Year:
+                      </strong>{" "}
                       {publication.publication_year ||
                         "Not specified"}
                     </p>
 
                     {publication.doi && (
                       <p>
-                        <strong>DOI:</strong>{" "}
+                        <strong>
+                          DOI:
+                        </strong>{" "}
                         {publication.doi}
                       </p>
                     )}
@@ -778,7 +852,9 @@ function App() {
           )}
         </section>
 
-        {/* AI ASSISTANT */}
+        {/* ==================================================
+            AI ASSISTANT
+        ================================================== */}
         <AIAssistant />
       </main>
     </div>
@@ -839,10 +915,6 @@ const styles = {
       "0 10px 35px rgba(15,23,42,0.08)",
   },
 
-  loginHeader: {
-    marginBottom: "30px",
-  },
-
   logo: {
     width: "55px",
     height: "55px",
@@ -863,14 +935,16 @@ const styles = {
     lineHeight: "1.25",
   },
 
-  loginDescription: {
+  description: {
     color: "#64748b",
     lineHeight: "1.6",
+    marginBottom: "25px",
   },
 
   label: {
     display: "block",
     marginBottom: "8px",
+    marginTop: "16px",
     fontSize: "14px",
     fontWeight: "700",
     color: "#334155",
@@ -896,7 +970,8 @@ const styles = {
     borderRadius: "9px",
     fontSize: "14px",
     resize: "vertical",
-    fontFamily: "Arial, sans-serif",
+    fontFamily:
+      "Arial, Helvetica, sans-serif",
   },
 
   loginButton: {
@@ -913,7 +988,8 @@ const styles = {
 
   logoutButton: {
     padding: "10px 16px",
-    border: "1px solid #cbd5e1",
+    border:
+      "1px solid #cbd5e1",
     borderRadius: "8px",
     backgroundColor: "white",
     color: "#334155",
@@ -969,7 +1045,7 @@ const styles = {
     fontSize: "30px",
   },
 
-  statusNumber: {
+  connected: {
     margin: "8px 0 0",
     fontSize: "20px",
   },
@@ -1012,7 +1088,8 @@ const styles = {
 
   secondaryButton: {
     padding: "9px 14px",
-    border: "1px solid #cbd5e1",
+    border:
+      "1px solid #cbd5e1",
     borderRadius: "8px",
     backgroundColor: "white",
     color: "#334155",
@@ -1020,7 +1097,7 @@ const styles = {
     cursor: "pointer",
   },
 
-  listGrid: {
+  grid: {
     display: "grid",
     gridTemplateColumns:
       "repeat(auto-fit, minmax(260px, 1fr))",
